@@ -3,12 +3,14 @@ require_once __DIR__ . '/config.php';
 
 class EspoClient
 {
-    private string $baseUrl;
-    private string $apiKey;
-    private string $siteKey; // used to namespace cache files per instance
+    private string  $siteKey;
+    private bool    $isCombined = false;
+    private array   $combinedClients = []; // EspoClient[] for each child site
+    private string  $baseUrl = '';
+    private string  $apiKey  = '';
 
     /**
-     * @param string $siteKey  Key from INSTANCES array e.g. 'site1'
+     * @param string $siteKey  Key from INSTANCES array e.g. 'site1', or 'combined'
      */
     public function __construct(string $siteKey)
     {
@@ -18,8 +20,17 @@ class EspoClient
         }
         $cfg = $instances[$siteKey];
         $this->siteKey = $siteKey;
-        $this->baseUrl = rtrim($cfg['url'], '/') . '/api/' . ESPO_API_VERSION;
-        $this->apiKey  = $cfg['api_key'];
+
+        if (isset($cfg['combined'])) {
+            // Virtual combined instance — build a client for each child site
+            $this->isCombined = true;
+            foreach ($cfg['combined'] as $childKey) {
+                $this->combinedClients[] = new EspoClient($childKey);
+            }
+        } else {
+            $this->baseUrl = rtrim($cfg['url'], '/') . '/api/' . ESPO_API_VERSION;
+            $this->apiKey  = $cfg['api_key'];
+        }
     }
 
     /**
@@ -32,6 +43,15 @@ class EspoClient
      */
     public function fetchMonthly(string $module, string $dateFrom, string $dateTo): array
     {
+        // Combined mode: merge records from all child sites
+        if ($this->isCombined) {
+            $merged = [];
+            foreach ($this->combinedClients as $child) {
+                $merged = array_merge($merged, $child->fetchMonthly($module, $dateFrom, $dateTo));
+            }
+            return $merged;
+        }
+
         $records = [];
         $offset  = 0;
 
@@ -81,6 +101,19 @@ class EspoClient
      */
     public function monthlySummary(string $module, int $year): array
     {
+        // Combined mode: sum monthly summaries from all child sites
+        if ($this->isCombined) {
+            $merged = [];
+            foreach ($this->combinedClients as $child) {
+                foreach ($child->monthlySummary($module, $year) as $mk => $data) {
+                    $merged[$mk]['count'] = ($merged[$mk]['count'] ?? 0) + $data['count'];
+                    $merged[$mk]['total'] = ($merged[$mk]['total'] ?? 0) + $data['total'];
+                }
+            }
+            ksort($merged);
+            return $merged;
+        }
+
         $summary = [];
 
         for ($m = 1; $m <= 12; $m++) {

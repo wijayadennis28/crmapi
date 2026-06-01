@@ -5,14 +5,18 @@ define('ESPO_API_VERSION', 'v1');
 // Multiple EspoCRM instances — add/edit as needed
 define('INSTANCES', [
     'site1' => [
-        'name'    => 'Site 1',                    // Display name
-        'url'     => 'https://erp.trinitioptimapackindo.com',  // Base URL (no trailing slash)
+        'name'    => 'TOP',
+        'url'     => 'https://erp.trinitioptimapackindo.com',
         'api_key' => 'ff283f586ea4603f7bbb19551f3dd0c0',
     ],
     'site2' => [
-        'name'    => 'Site 2',
+        'name'    => 'MMP/SLP',
         'url'     => 'https://erp-nonppn.trinitioptimapackindo.com',
         'api_key' => '03d3ae59d8df23d1a5df217cf22404c2',
+    ],
+    'combined' => [
+        'name'     => 'ALL (TOP + MMP/SLP)',
+        'combined' => ['site1', 'site2'],   // list the site keys to merge
     ],
 ]);
 
