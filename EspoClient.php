@@ -52,29 +52,21 @@ class EspoClient
             return $merged;
         }
 
+        $filterField = DATE_FILTER_FIELDS[$module] ?? DATE_FILTER_FIELDS['_default'];
+        $orderField  = DATE_ORDER_FIELDS[$module]  ?? DATE_ORDER_FIELDS['_default'];
+
         $records = [];
         $offset  = 0;
 
         do {
-            $params = http_build_query([
-                'maxSize'                   => PAGE_SIZE,
-                'offset'                    => $offset,
-                'where[0][type]'            => 'between',
-                'where[0][attribute]'       => DATE_FIELD,
-                'where[0][value][]'         => $dateFrom . ' 00:00:00',
-                'where[1][value][]'         => $dateTo   . ' 23:59:59',
-                'orderBy'                   => DATE_FIELD,
-                'order'                     => 'asc',
-            ]);
-
-            // EspoCRM between filter needs both values in the same key array
+            // EspoCRM between filter needs both values in the same repeated key
             $params = 'maxSize=' . PAGE_SIZE
                 . '&offset=' . $offset
                 . '&where[0][type]=between'
-                . '&where[0][attribute]=' . urlencode(DATE_FIELD)
+                . '&where[0][attribute]=' . urlencode($filterField)
                 . '&where[0][value][]=' . urlencode($dateFrom . ' 00:00:00')
                 . '&where[0][value][]=' . urlencode($dateTo   . ' 23:59:59')
-                . '&orderBy=' . urlencode(DATE_FIELD)
+                . '&orderBy=' . urlencode($orderField)
                 . '&order=asc';
 
             $url  = "{$this->baseUrl}/{$module}?{$params}";

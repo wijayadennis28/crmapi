@@ -36,8 +36,21 @@ define('MODULES', [
     'CPettyCash'    => 'Petty Cash',
 ]);
 
-// Date field used for monthly filtering per module
-define('DATE_FIELD', 'createdAt');
+// Date field used for the WHERE filter (dashboard grouping), per module.
+// Modules not listed here fall back to '_default'.
+define('DATE_FILTER_FIELDS', [
+    'SalesOrder'    => 'dateOrdered',
+    'PurchaseOrder' => 'dateOrdered',
+    '_default'      => 'createdAt',
+]);
+
+// Date field used for ORDER BY in API requests, per module.
+// Modules not listed here fall back to '_default'.
+define('DATE_ORDER_FIELDS', [
+    'SalesOrder'    => 'dateOrdered',
+    'PurchaseOrder' => 'dateOrdered',
+    '_default'      => 'createdAt',
+]);
 
 // Max records per API request
 define('PAGE_SIZE', 200);

@@ -17,6 +17,22 @@ if ($year < 2000 || $year > 2100) {
     $year = (int)date('Y');
 }
 
+// Flush cache for the current site + module + year when ?flush=1
+if (!empty($_GET['flush'])) {
+    $instances = INSTANCES;
+    $sitesToFlush = isset($instances[$activeSite]['combined'])
+        ? $instances[$activeSite]['combined']
+        : [$activeSite];
+
+    foreach ($sitesToFlush as $sk) {
+        $prefix  = preg_replace('/[^a-z0-9_]/i', '_', "{$sk}_{$activeModule}_{$year}");
+        $pattern = CACHE_DIR . '/' . $prefix . '_*.json';
+        foreach (glob($pattern) ?: [] as $f) {
+            unlink($f);
+        }
+    }
+}
+
 $client = new EspoClient($activeSite);
 $error  = null;
 $summary = [];
@@ -88,7 +104,9 @@ $peakMonth = !empty($chartCounts) ? $months[array_search(max($chartCounts), $cha
     <header class="topbar">
       <h1><?= htmlspecialchars(INSTANCES[$activeSite]['name']) ?> &mdash; <?= htmlspecialchars(MODULES[$activeModule]) ?> &mdash; <?= $year ?></h1>
       <div class="topbar-right">
-        <span style="font-size:.8rem;color:var(--muted)">Cached <?= CACHE_TTL ?>s</span>
+        <span style="font-size:.8rem;color:var(--muted)">
+          <?= !empty($_GET['flush']) && $_GET['flush'] === '1' ? '&#10003; Cache cleared' : 'Cached ' . CACHE_TTL . 's' ?>
+        </span>
       </div>
     </header>
 
@@ -106,8 +124,11 @@ $peakMonth = !empty($chartCounts) ? $months[array_search(max($chartCounts), $cha
           <label>Year</label>
           <input type="number" name="year" value="<?= $year ?>" min="2000" max="2100" style="width:90px">
         </div>
-        <button type="submit" class="btn btn-primary" onclick="document.getElementById('loader').classList.add('show')">
+        <button type="submit" name="flush" value="0" class="btn btn-primary" onclick="document.getElementById('loader').classList.add('show')">
           &#8635; Refresh
+        </button>
+        <button type="submit" name="flush" value="1" class="btn btn-outline" onclick="document.getElementById('loader').classList.add('show')" title="Clear cache and reload fresh data">
+          &#9851; Force Refresh
         </button>
         <a href="export.php?site=<?= urlencode($activeSite) ?>&module=<?= urlencode($activeModule) ?>&year=<?= $year ?>&month=all&format=csv"
            class="btn btn-success" id="csvBtn">
