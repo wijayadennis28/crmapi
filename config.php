@@ -41,6 +41,7 @@ define('MODULES', [
 define('DATE_FILTER_FIELDS', [
     'SalesOrder'    => 'dateOrdered',
     'PurchaseOrder' => 'dateOrdered',
+    'CPettyCash'    => 'cashDate',
     '_default'      => 'createdAt',
 ]);
 
@@ -49,6 +50,7 @@ define('DATE_FILTER_FIELDS', [
 define('DATE_ORDER_FIELDS', [
     'SalesOrder'    => 'dateOrdered',
     'PurchaseOrder' => 'dateOrdered',
+    'CPettyCash'    => 'cashDate',
     '_default'      => 'createdAt',
 ]);
 
