@@ -88,6 +88,12 @@ $peakMonth = !empty($chartCounts) ? $months[array_search(max($chartCounts), $cha
       </a>
       <?php endforeach; ?>
     </div>
+    <!-- Monthly report tools -->
+    <div style="padding:10px 12px;border-bottom:1px solid var(--border);display:flex;gap:6px;flex-wrap:wrap">
+      <a href="input.php" class="btn btn-outline" style="height:28px;font-size:.75rem;padding:0 10px">Monthly Input</a>
+      <a href="mapping.php" class="btn btn-outline" style="height:28px;font-size:.75rem;padding:0 10px">Mappings</a>
+      <a href="report.php" class="btn btn-outline" style="height:28px;font-size:.75rem;padding:0 10px">Report</a>
+    </div>
     <nav class="sidebar-nav">
       <?php foreach (MODULES as $key => $label): ?>
       <a href="?site=<?= urlencode($activeSite) ?>&module=<?= urlencode($key) ?>&year=<?= $year ?>"
