@@ -58,6 +58,12 @@ Everything else is manual because the CRM has no bank, inventory valuation, targ
 - Code: git tag per release, plus a zip outside the repo.
 - Data: copy `data/app.sqlite` (and `-wal`/`-shm` when present) before schema changes or deploy. Do not put the SQLite file in git.
 
+## Design system
+
+- `PRODUCT.md` — product truth: users, workflow, constraints.
+- `DESIGN.md` — the Packing Docket visual system: tokens, components, rules.
+- The UI is deliberately dense and print-first. Read `DESIGN.md` before adding a new screen.
+
 ## Tests
 
 ```bash

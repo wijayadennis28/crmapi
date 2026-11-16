@@ -27,35 +27,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Sign in — CRM Monthly Report</title>
+<title>Sign in — TOP Monthly Report</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/style.css">
-<style>
-  .auth-wrap { max-width: 380px; margin: 12vh auto; padding: 0 20px; }
-  .auth-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 28px; }
-  .auth-card h1 { font-size: 1.15rem; margin-bottom: 6px; }
-  .auth-card p.sub { font-size: .82rem; color: var(--muted); margin-bottom: 20px; }
-  .auth-card label { display: block; font-size: .75rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin: 14px 0 5px; }
-  .auth-card input { width: 100%; height: 40px; padding: 0 10px; border: 1px solid var(--border); border-radius: 6px; font-size: .9rem; }
-  .auth-card button { width: 100%; margin-top: 20px; justify-content: center; }
-</style>
 </head>
 <body>
-<div class="auth-wrap">
-  <div class="auth-card">
-    <h1>&#9685; TOP CRM Monthly Report</h1>
-    <p class="sub">Sign in to enter monthly figures and view the report.</p>
-    <?php if ($error): ?>
-      <div class="alert alert-error"><?= htmlspecialchars($error) ?></div>
-    <?php endif; ?>
-    <form method="post">
+<div class="login-shell">
+  <section class="login-brand" aria-label="TOP Monthly Report">
+    <span class="login-mark">TOP</span>
+    <span class="login-brand-sub">Triniti Optima Packindo<br>Monthly report desk</span>
+    <div class="login-meta">
+      <span>Finance / Monthly close</span>
+      <span>TOP &middot; MMP &middot; SAE</span>
+    </div>
+  </section>
+
+  <section class="login-panel">
+    <form method="post" class="login-form">
+      <div class="eyebrow"><span class="doc-no">ACCESS</span><span class="dot">/</span><span>Finance</span></div>
+      <h1 class="mt-12">Sign in</h1>
+      <p class="sub">Enter monthly figures, map entities, and close the report.</p>
+
+      <?php if ($error): ?>
+        <div class="notice notice-danger" role="alert"><?= htmlspecialchars($error) ?></div>
+      <?php endif; ?>
+
       <input type="hidden" name="csrf" value="<?= htmlspecialchars(csrf_token()) ?>">
-      <label for="user">Username</label>
-      <input id="user" name="user" autocomplete="username" required autofocus>
-      <label for="password">Password</label>
-      <input id="password" name="password" type="password" autocomplete="current-password" required>
-      <button type="submit" class="btn btn-primary">Sign in</button>
+
+      <div class="field">
+        <label for="user">Username</label>
+        <input class="input" id="user" name="user" autocomplete="username" required autofocus>
+      </div>
+
+      <div class="field">
+        <label for="password">Password</label>
+        <input class="input" id="password" name="password" type="password" autocomplete="current-password" required>
+      </div>
+
+      <button type="submit" class="btn btn-signal">Sign in</button>
+
+      <p class="login-foot">Monthly report access only. The CRM dashboard remains public.</p>
     </form>
-  </div>
+  </section>
 </div>
 </body>
 </html>

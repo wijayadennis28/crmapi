@@ -31,108 +31,230 @@ foreach ($defs as $metric => $def) {
     $groups[$def['group']][$metric] = $def;
 }
 
+$requiredTotal = 0;
+foreach ($defs as $def) {
+    if (!empty($def['required'])) {
+        $requiredTotal += count($def['scopes']);
+    }
+}
+$filledRequired = $requiredTotal - count($missing);
+
+$bankTotal = 0.0;
+$inventoryTotal = 0.0;
+$costTotal = 0.0;
+foreach ($defs as $metric => $def) {
+    foreach ($def['scopes'] as $scope) {
+        $value = (float)($inputs[$scope][$metric] ?? 0);
+        if ($metric === 'bank_balance') {
+            $bankTotal += $value;
+        } elseif (str_starts_with($metric, 'inv_')) {
+            $inventoryTotal += $value;
+        } elseif (str_starts_with($metric, 'cost_')) {
+            $costTotal += $value;
+        }
+    }
+}
+
 $previous = date('Y-m', strtotime($period . '-01 -1 month'));
 $next     = date('Y-m', strtotime($period . '-01 +1 month'));
 
-ui_header('Monthly Input', 'input.php');
+ui_header('Monthly Input', 'input.php', ['mobile_meta' => period_label($period)]);
 ?>
-<div class="page-head">
-  <div>
-    <h1>Monthly Input — <?= e(period_label($period)) ?></h1>
-    <p>Only enter figures that are not available from EspoCRM. Sales and purchases are calculated from the API; production rolls and the figures below are manual.</p>
+<div class="docket-head">
+  <div class="eyebrow">
+    <span class="doc-no">02 / INPUT</span>
+    <span class="dot">/</span>
+    <span><?= e(period_label($period)) ?></span>
+    <span class="dot">/</span>
+    <span>Manual figures</span>
   </div>
-  <div class="actions">
-    <span class="status-pill <?= $closed ? 'status-closed' : 'status-open' ?>"><?= $closed ? 'Closed' : 'Open' ?></span>
-    <?php if ($savedAt): ?><span class="small muted">Last saved <?= e($savedAt) ?></span><?php endif; ?>
+  <div class="docket-title-row">
+    <div>
+      <h1 class="docket-title">Monthly input <span class="thin">/ <?= e(period_label($period)) ?></span></h1>
+      <p class="docket-sub">Enter only the figures that do not come from EspoCRM. Sales and purchases are pulled from the API; production rolls and the fields below are manual.</p>
+    </div>
+    <div class="docket-actions">
+      <?= ui_stamp($closed) ?>
+      <?php if ($savedAt): ?><span class="small muted">Saved <?= e($savedAt) ?></span><?php endif; ?>
+    </div>
   </div>
 </div>
 
 <?php if (isset($_GET['saved'])): ?>
-  <div class="alert" style="background:#f0fdf4;border:1px solid #86efac;color:#15803d">Saved.</div>
+  <div class="notice notice-ok" role="status" aria-live="polite">Saved. The ledger is up to date.</div>
 <?php endif; ?>
-
 <?php foreach ($errors as $error): ?>
-  <div class="alert alert-error"><?= e($error) ?></div>
+  <div class="notice notice-danger" role="alert"><?= e($error) ?></div>
 <?php endforeach; ?>
 
 <?php if ($closed): ?>
-  <div class="alert" style="background:#f0fdf4;border:1px solid #86efac;color:#15803d">
-    This month is closed and locked. Reopen it from the <a href="report.php?period=<?= urlencode($period) ?>">Report</a> page to edit.
-  </div>
+  <div class="notice notice-info">This month is closed and locked. Reopen it from the <a href="report.php?period=<?= urlencode($period) ?>">report</a> to edit.</div>
 <?php elseif ($missing): ?>
-  <div class="alert" style="background:#fffbeb;border:1px solid #fde68a;color:#b45309">
-    <?= count($missing) ?> required figure(s) still missing. You can save a draft, but the month cannot be closed until they are filled.
+  <div class="notice notice-warn">
+    <?= count($missing) ?> required figure<?= count($missing) === 1 ? '' : 's' ?> still missing. You can save a draft, but the month cannot be closed until they are filled.
   </div>
 <?php endif; ?>
 
-<form method="get" class="controls" style="margin-bottom:16px">
-  <div class="control-group">
-    <label>Month</label>
-    <input type="month" name="period" value="<?= e($period) ?>" required>
+<div class="period-bar">
+  <div class="period-nav">
+    <a class="btn btn-outline btn-sm" href="input.php?period=<?= urlencode($previous) ?>">&larr; <?= e(date('M Y', strtotime($previous . '-01'))) ?></a>
+    <form method="get" class="row">
+      <label class="sr-only" for="period">Month</label>
+      <input class="input" type="month" id="period" name="period" value="<?= e($period) ?>" required>
+      <button type="submit" class="btn btn-outline btn-sm">Load</button>
+    </form>
+    <a class="btn btn-outline btn-sm" href="input.php?period=<?= urlencode($next) ?>"><?= e(date('M Y', strtotime($next . '-01'))) ?> &rarr;</a>
   </div>
-  <button type="submit" class="btn btn-primary">Load</button>
-  <a class="btn btn-outline" href="input.php?period=<?= urlencode($previous) ?>">&larr; <?= e(period_label($previous)) ?></a>
-  <a class="btn btn-outline" href="input.php?period=<?= urlencode($next) ?>"><?= e(period_label($next)) ?> &rarr;</a>
-</form>
+  <a class="btn btn-outline btn-sm" href="report.php?period=<?= urlencode($period) ?>">View report</a>
+</div>
 
-<form method="post">
+<form method="post" id="entry-form">
   <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
   <input type="hidden" name="period" value="<?= e($period) ?>">
   <input type="hidden" name="action" value="save">
 
-  <div class="table-card">
-    <div class="table-wrap">
-      <table class="matrix">
-        <thead>
-          <tr>
-            <th style="min-width:260px">Figure</th>
-            <?php foreach (SCOPES as $scope): ?>
-              <th><?= e(scope_label($scope)) ?></th>
-            <?php endforeach; ?>
-          </tr>
-        </thead>
-        <tbody>
-          <?php foreach ($groups as $group => $metrics): ?>
-            <tr class="group-row"><th colspan="<?= count(SCOPES) + 1 ?>"><?= e($group) ?></th></tr>
-            <?php foreach ($metrics as $metric => $def): ?>
+  <div class="entry-layout">
+    <div class="entry-main">
+      <div class="sheet flush">
+        <div class="sheet-head">
+          <div class="sheet-title-wrap">
+            <span class="sheet-no">A</span>
+            <span class="sheet-title">Input ledger</span>
+          </div>
+          <span class="sheet-meta"><?= e(period_label($period)) ?> &middot; <?= $closed ? 'locked' : 'draft' ?></span>
+        </div>
+        <p class="scroll-hint mobile-only">Scroll sideways for CV MMP / CV SAE &rarr;</p>
+        <div class="matrix-scroll">
+          <table class="matrix">
+            <thead>
               <tr>
-                <td>
-                  <strong><?= e($def['label']) ?></strong>
-                  <span class="unit"><?= e($def['unit'] === 'IDR' ? 'IDR' : $def['unit']) ?></span>
-                </td>
+                <th>Figure</th>
                 <?php foreach (SCOPES as $scope): ?>
-                  <?php if (in_array($scope, $def['scopes'], true)): ?>
-                    <?php $value = $inputs[$scope][$metric] ?? null; ?>
-                    <td class="cell">
-                      <input type="number" step="0.01" name="v[<?= e($scope) ?>][<?= e($metric) ?>]"
-                             value="<?= $value === null ? '' : e(number_format($value, 2, '.', '')) ?>"
-                             <?= $closed ? 'disabled' : '' ?>>
-                    </td>
-                  <?php else: ?>
-                    <td class="na">&mdash;</td>
-                  <?php endif; ?>
+                  <th><?= e(scope_label($scope)) ?></th>
                 <?php endforeach; ?>
               </tr>
-            <?php endforeach; ?>
-          <?php endforeach; ?>
-        </tbody>
-      </table>
-    </div>
-  </div>
+            </thead>
+            <tbody>
+              <?php $groupNo = 0; foreach ($groups as $group => $metrics): $groupNo++; ?>
+                <tr class="group-row">
+                  <th colspan="<?= count(SCOPES) + 1 ?>"><span class="group-no"><?= str_pad((string)$groupNo, 2, '0', STR_PAD_LEFT) ?></span><?= e($group) ?></th>
+                </tr>
+                <?php foreach ($metrics as $metric => $def): ?>
+                  <tr>
+                    <td class="row-label">
+                      <strong><?= e($def['label']) ?></strong>
+                      <span class="unit"><?= e($def['unit'] === 'IDR' ? 'IDR' : $def['unit']) ?></span>
+                    </td>
+                    <?php foreach (SCOPES as $scope): ?>
+                      <?php if (in_array($scope, $def['scopes'], true)): ?>
+                        <?php
+                          $value    = $inputs[$scope][$metric] ?? null;
+                          $unit     = $def['unit'];
+                          $required = !empty($def['required']);
+                          $groupKey = '';
+                          if ($metric === 'bank_balance') {
+                              $groupKey = 'bank';
+                          } elseif (str_starts_with($metric, 'inv_')) {
+                              $groupKey = 'inventory';
+                          } elseif (str_starts_with($metric, 'cost_')) {
+                              $groupKey = 'cost';
+                          } elseif (str_starts_with($metric, 'production_')) {
+                              $groupKey = 'production';
+                          } elseif ($metric === 'sales_target') {
+                              $groupKey = 'target';
+                          } elseif (str_contains($metric, 'adjustment')) {
+                              $groupKey = 'adjustment';
+                          }
+                        ?>
+                        <td class="cell">
+                          <div class="cell-wrap">
+                            <input
+                              class="cell-input"
+                              type="number"
+                              step="<?= $unit === 'rolls' ? '1' : '0.01' ?>"
+                              inputmode="decimal"
+                              autocomplete="off"
+                              name="v[<?= e($scope) ?>][<?= e($metric) ?>]"
+                              value="<?= $value === null ? '' : e(number_format($value, 2, '.', '')) ?>"
+                              data-unit="<?= e($unit) ?>"
+                              data-required="<?= $required ? '1' : '0' ?>"
+                              data-group="<?= e($groupKey) ?>"
+                              data-touched="0"
+                              aria-label="<?= e($def['label'] . ' — ' . scope_label($scope)) ?>"
+                              <?= $closed ? 'disabled' : '' ?>>
+                            <span class="cell-preview" aria-hidden="true"></span>
+                          </div>
+                        </td>
+                      <?php else: ?>
+                        <td class="na">&mdash;</td>
+                      <?php endif; ?>
+                    <?php endforeach; ?>
+                  </tr>
+                <?php endforeach; ?>
+              <?php endforeach; ?>
+            </tbody>
+          </table>
+        </div>
+      </div>
 
-  <div class="section-card">
-    <div class="section-head"><h2>Notes</h2></div>
-    <div class="section-body">
-      <textarea name="note" rows="3" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:.85rem" <?= $closed ? 'disabled' : '' ?>><?= e($note) ?></textarea>
-      <p class="small muted" style="margin-top:6px">Note is required when you enter a sales or purchase adjustment.</p>
-    </div>
-  </div>
+      <div class="sheet">
+        <div class="sheet-head">
+          <div class="sheet-title-wrap"><span class="sheet-no">B</span><span class="sheet-title">Month note</span></div>
+        </div>
+        <div class="sheet-body">
+          <label class="sr-only" for="note">Month note</label>
+          <textarea class="textarea" id="note" name="note" rows="4" placeholder="Reason for adjustments, missing documents, etc." <?= $closed ? 'disabled' : '' ?>><?= e($note) ?></textarea>
+          <p class="small muted mt-8">Required when you enter a sales or purchase adjustment.</p>
+        </div>
+      </div>
 
-  <div class="actions">
-    <?php if (!$closed): ?>
-      <button type="submit" class="btn btn-primary">Save monthly input</button>
-    <?php endif; ?>
-    <a class="btn btn-outline" href="report.php?period=<?= urlencode($period) ?>">Go to report</a>
+      <div class="sticky-actions">
+        <div class="meta">
+          <?= $closed ? 'Month is closed.' : 'Changes are audited with your user and timestamp.' ?>
+          <?php if ($savedAt): ?><span class="muted"> Last saved <?= e($savedAt) ?>.</span><?php endif; ?>
+        </div>
+        <div class="row">
+          <?php if (!$closed): ?>
+            <button type="submit" class="btn btn-signal">Save monthly input</button>
+          <?php endif; ?>
+          <a class="btn btn-outline" href="report.php?period=<?= urlencode($period) ?>">Go to report</a>
+        </div>
+      </div>
+    </div>
+
+    <aside class="entry-rail">
+      <div class="sheet">
+        <div class="sheet-head">
+          <div class="sheet-title-wrap"><span class="sheet-no">C</span><span class="sheet-title">Completion</span></div>
+        </div>
+        <div class="sheet-body">
+          <div class="completion">
+            <span class="completion-number" data-completion><?= $filledRequired ?>/<?= $requiredTotal ?></span>
+            <span class="completion-label">required</span>
+          </div>
+          <div class="ticks" aria-hidden="true">
+            <?php for ($i = 0; $i < $requiredTotal; $i++): ?>
+              <span class="tick <?= $i < $filledRequired ? 'on' : '' ?>" data-tick></span>
+            <?php endfor; ?>
+          </div>
+          <p class="small muted mt-8">Blank means not entered, not zero. Required fields are checked only when you close the month.</p>
+        </div>
+      </div>
+
+      <div class="sheet">
+        <div class="sheet-head">
+          <div class="sheet-title-wrap"><span class="sheet-no">D</span><span class="sheet-title">Manual totals</span></div>
+        </div>
+        <div class="sheet-body tight">
+          <table class="manual-totals">
+            <tr><td class="label">Bank</td><td class="num" data-total-for="bank">Rp <?= e(number_format($bankTotal, 0, ',', '.')) ?></td></tr>
+            <tr><td class="label">Inventory</td><td class="num" data-total-for="inventory">Rp <?= e(number_format($inventoryTotal, 0, ',', '.')) ?></td></tr>
+            <tr><td class="label">Operating costs</td><td class="num" data-total-for="cost">Rp <?= e(number_format($costTotal, 0, ',', '.')) ?></td></tr>
+          </table>
+        </div>
+      </div>
+
+    </aside>
   </div>
 </form>
 <?php ui_footer(); ?>

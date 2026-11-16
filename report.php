@@ -225,55 +225,97 @@ $targetDiff = $target !== null ? $totalSales - $target : null;
 $targetPct = $target ? ($totalSales / $target * 100) : null;
 $closedInfo = get_setting('closed:' . $period);
 
-ui_header('Monthly Report', 'report.php');
+$targetFill  = $targetPct !== null ? max(0, min(100, (float)$targetPct)) : 0;
+$targetTone  = ($targetDiff !== null && $targetDiff < 0) ? 'neg' : 'pos';
+$liveLabel   = $closed ? 'frozen at close' : 'live';
+
+ui_header('Monthly Report', 'report.php', ['mobile_meta' => period_label($period)]);
 ?>
-<div class="page-head">
-  <div>
-    <h1>Monthly Report — <?= e(period_label($period)) ?></h1>
-    <p>
-      API sales and purchases<?= $closed ? ' (frozen at close)' : ' (live)' ?>,
-      combined with the monthly input.
-    </p>
+<div class="print-only print-head">
+  <span>TOP — Triniti Optima Packindo</span>
+  <span>Monthly report / <?= e(period_label($period)) ?></span>
+  <span><?= $closed ? 'Closed' : 'Draft — live data' ?></span>
+</div>
+
+<div class="docket-head">
+  <div class="eyebrow">
+    <span class="doc-no">04 / REPORT</span>
+    <span class="dot">/</span>
+    <span><?= e(period_label($period)) ?></span>
+    <span class="dot">/</span>
+    <span><?= $closed ? 'Frozen' : 'Live' ?></span>
   </div>
-  <div class="actions">
-    <span class="status-pill <?= $closed ? 'status-closed' : 'status-open' ?>"><?= $closed ? 'Closed' : 'Open' ?></span>
-    <?php if ($closedInfo): ?><span class="small muted">Closed <?= e(str_replace('|', ' by ', $closedInfo)) ?></span><?php endif; ?>
-    <a class="btn btn-outline" href="input.php?period=<?= urlencode($period) ?>">Edit input</a>
-    <a class="btn btn-outline" href="mapping.php?period=<?= urlencode($period) ?>">Mappings</a>
+  <div class="docket-title-row">
+    <div>
+      <h1 class="docket-title">Monthly report <span class="thin">/ <?= e(period_label($period)) ?></span></h1>
+      <p class="docket-sub">API sales and purchases <?= e($liveLabel) ?>, combined with the monthly input. Amounts in IDR.</p>
+    </div>
+    <div class="docket-actions">
+      <?= ui_stamp($closed) ?>
+      <button type="button" class="btn btn-outline btn-sm" data-print>Print</button>
+      <a class="btn btn-outline btn-sm" href="input.php?period=<?= urlencode($period) ?>">Edit input</a>
+      <a class="btn btn-outline btn-sm" href="mapping.php?period=<?= urlencode($period) ?>">Mappings</a>
+    </div>
   </div>
 </div>
 
 <?php if (isset($_GET['closed'])): ?>
-  <div class="alert" style="background:#f0fdf4;border:1px solid #86efac;color:#15803d">Month closed and API figures frozen.</div>
+  <div class="notice notice-ok" role="status" aria-live="polite">Month closed and API figures frozen.</div>
 <?php endif; ?>
 <?php if (isset($_GET['reopened'])): ?>
-  <div class="alert" style="background:#fffbeb;border:1px solid #fde68a;color:#b45309">Month reopened. The report is live again until you close it.</div>
+  <div class="notice notice-warn" role="status">Month reopened. The report is live again until you close it.</div>
 <?php endif; ?>
 <?php foreach ($errors as $error): ?>
-  <div class="alert alert-error"><?= e($error) ?></div>
+  <div class="notice notice-danger" role="alert"><?= e($error) ?></div>
 <?php endforeach; ?>
 <?php if ($autoMapped > 0): ?>
-  <div class="alert" style="background:#fffbeb;border:1px solid #fde68a;color:#b45309">
-    <?= $autoMapped ?> account/supplier row(s) used the fallback name rule. Save explicit mappings for an exact split.
+  <div class="notice notice-warn">
+    <?= $autoMapped ?> order/PO record<?= $autoMapped === 1 ? '' : 's' ?> used the fallback name rule. Save explicit mappings for an exact split.
   </div>
 <?php endif; ?>
 <?php if (!$closed && $missing): ?>
-  <div class="alert" style="background:#fffbeb;border:1px solid #fde68a;color:#b45309">
-    <?= count($missing) ?> required input(s) missing. The month cannot be closed yet.
+  <div class="notice notice-warn">
+    <?= count($missing) ?> required input<?= count($missing) === 1 ? '' : 's' ?> missing. The month cannot be closed yet.
+  </div>
+<?php endif; ?>
+<?php if ($closedInfo): ?>
+  <div class="notice notice-info">
+    Closed <?= e(str_replace('|', ' by ', $closedInfo)) ?>.
   </div>
 <?php endif; ?>
 
-<div class="summary-grid">
-  <div class="summary-card blue"><div class="label">Total Sales</div><div class="value"><?= e(format_idr($totalSales, 0)) ?></div><div class="sub"><?= $target !== null ? 'Target ' . e(format_idr($target, 0)) : 'Target not entered' ?></div></div>
-  <div class="summary-card green"><div class="label">Total Purchases</div><div class="value"><?= e(format_idr($totalPurchases, 0)) ?></div><div class="sub">incl. adjustments</div></div>
-  <div class="summary-card amber"><div class="label">Total Costs</div><div class="value"><?= e(format_idr($totalCosts, 0)) ?></div><div class="sub">bank, petty, salary, electricity</div></div>
-  <div class="summary-card red"><div class="label">Laba / Rugi</div><div class="value"><?= e(format_idr($labaRugi, 0)) ?></div><div class="sub">sales + inventory + bank − purchases − costs</div></div>
+<div class="figures">
+  <div class="figure">
+    <div class="figure-kicker">Total sales</div>
+    <div class="figure-number">Rp <?= e(number_format($totalSales, 0, ',', '.')) ?></div>
+    <div class="figure-note"><?= $target !== null ? 'Target Rp ' . e(number_format($target, 0, ',', '.')) : 'Target not entered' ?></div>
+  </div>
+  <div class="figure">
+    <div class="figure-kicker">Total purchases</div>
+    <div class="figure-number">Rp <?= e(number_format($totalPurchases, 0, ',', '.')) ?></div>
+    <div class="figure-note">API + adjustments</div>
+  </div>
+  <div class="figure">
+    <div class="figure-kicker">Total costs</div>
+    <div class="figure-number">Rp <?= e(number_format($totalCosts, 0, ',', '.')) ?></div>
+    <div class="figure-note">Bank, petty, salary, electricity</div>
+  </div>
+  <div class="figure">
+    <div class="figure-kicker">Laba / Rugi</div>
+    <div class="figure-number <?= $labaRugi < 0 ? 'neg' : 'pos' ?>">Rp <?= e(number_format($labaRugi, 0, ',', '.')) ?></div>
+    <div class="figure-note">Sales + inventory + bank - purchases - costs</div>
+  </div>
 </div>
 
-<div class="section-card">
-  <div class="section-head"><h2>Sales</h2><span class="small muted">API: SalesOrder by dateOrdered</span></div>
+<p class="scroll-hint mobile-only">Tables scroll sideways for all columns &rarr;</p>
+
+<div class="sheet">
+  <div class="sheet-head">
+    <div class="sheet-title-wrap"><span class="sheet-no">01</span><span class="sheet-title">Sales</span></div>
+    <span class="sheet-meta">SalesOrder / dateOrdered</span>
+  </div>
   <div class="table-wrap">
-    <table>
+    <table class="data">
       <thead><tr><th>Entity</th><th class="num">Bubble</th><th class="num">Lakban</th><th class="num">Adjustment</th><th class="num">Total</th></tr></thead>
       <tbody>
       <?php foreach (ENTITIES as $entity => $label): ?>
@@ -282,105 +324,172 @@ ui_header('Monthly Report', 'report.php');
           $lakban = (float)($salesData[$entity]['lakban'] ?? 0);
           $adj    = $salesAdjustment[$entity];
         ?>
-        <tr><td><strong><?= e($label) ?></strong></td><td class="num"><?= e(format_idr($bubble, 2)) ?></td><td class="num"><?= e(format_idr($lakban, 2)) ?></td><td class="num"><?= e(format_idr($adj, 2)) ?></td><td class="num"><strong><?= e(format_idr($bubble + $lakban + $adj, 2)) ?></strong></td></tr>
+        <tr>
+          <td><strong><?= e($label) ?></strong></td>
+          <td class="num"><?= e(format_idr($bubble, 2)) ?></td>
+          <td class="num"><?= e(format_idr($lakban, 2)) ?></td>
+          <td class="num <?= $adj < 0 ? 'neg' : '' ?>"><?= e(format_idr($adj, 2)) ?></td>
+          <td class="num strong"><?= e(format_idr($bubble + $lakban + $adj, 2)) ?></td>
+        </tr>
       <?php endforeach; ?>
-        <tr><td><strong>Total</strong></td><td class="num"><strong><?= e(format_idr($totalBubble, 2)) ?></strong></td><td class="num"><strong><?= e(format_idr($totalLakban, 2)) ?></strong></td><td class="num"><strong><?= e(format_idr(array_sum($salesAdjustment), 2)) ?></strong></td><td class="num"><strong><?= e(format_idr($totalSales, 2)) ?></strong></td></tr>
+        <tr class="total-row">
+          <td>Total</td>
+          <td class="num"><?= e(format_idr($totalBubble, 2)) ?></td>
+          <td class="num"><?= e(format_idr($totalLakban, 2)) ?></td>
+          <td class="num"><?= e(format_idr(array_sum($salesAdjustment), 2)) ?></td>
+          <td class="num"><?= e(format_idr($totalSales, 2)) ?></td>
+        </tr>
       </tbody>
     </table>
   </div>
 </div>
 
-<div class="section-card">
-  <div class="section-head"><h2>Target</h2></div>
-  <div class="section-body">
+<div class="sheet">
+  <div class="sheet-head">
+    <div class="sheet-title-wrap"><span class="sheet-no">02</span><span class="sheet-title">Target</span></div>
+    <?php if ($target !== null): ?><span class="sheet-meta"><?= e(number_format((float)$targetPct, 1, ',', '.')) ?>% of target</span><?php endif; ?>
+  </div>
+  <div class="target">
     <?php if ($target === null): ?>
       <p class="muted">No target entered for this month. <a href="input.php?period=<?= urlencode($period) ?>">Enter it</a>.</p>
     <?php else: ?>
-      <p>Actual <?= e(format_idr($totalSales, 2)) ?> vs target <?= e(format_idr($target, 2)) ?> —
-        <strong><?= e(number_format((float)$targetPct, 1, ',', '.')) ?>%</strong>,
-        variance <?= e(format_idr((float)$targetDiff, 2)) ?>.
-      </p>
+      <div class="target-head">
+        <div>
+          <div class="figure-kicker">Actual vs target</div>
+          <div class="target-pct"><?= e(number_format((float)$targetPct, 1, ',', '.')) ?>%</div>
+        </div>
+        <div class="text-right">
+          <div class="small muted">Target</div>
+          <div class="strong">Rp <?= e(number_format($target, 0, ',', '.')) ?></div>
+        </div>
+      </div>
+      <div class="target-meter" role="img" aria-label="<?= e(number_format((float)$targetPct, 1, ',', '.')) ?> percent of target">
+        <div class="target-fill" style="width:<?= e(number_format($targetFill, 1, '.', '')) ?>%"></div>
+        <div class="target-tick" style="left:100%"></div>
+      </div>
+      <div class="target-legend">
+        <span><i class="key key-fill"></i>Actual Rp <?= e(number_format($totalSales, 0, ',', '.')) ?></span>
+        <span><i class="key key-tick"></i>Target Rp <?= e(number_format($target, 0, ',', '.')) ?></span>
+        <span class="<?= $targetTone ?>">Variance Rp <?= e(number_format((float)$targetDiff, 0, ',', '.')) ?></span>
+      </div>
     <?php endif; ?>
   </div>
 </div>
 
-<div class="section-card">
-  <div class="section-head"><h2>Purchases</h2><span class="small muted">API: PurchaseOrder by dateOrdered</span></div>
+<div class="sheet">
+  <div class="sheet-head">
+    <div class="sheet-title-wrap"><span class="sheet-no">03</span><span class="sheet-title">Purchases</span></div>
+    <span class="sheet-meta">PurchaseOrder / dateOrdered</span>
+  </div>
   <div class="table-wrap">
-    <table>
+    <table class="data">
       <thead><tr><th>Entity</th><th class="num">API purchases</th><th class="num">Adjustment</th><th class="num">Total</th></tr></thead>
       <tbody>
       <?php foreach (ENTITIES as $entity => $label): ?>
         <?php $p = (float)($purchaseData[$entity] ?? 0); $a = $purchaseAdjustment[$entity]; ?>
-        <tr><td><strong><?= e($label) ?></strong></td><td class="num"><?= e(format_idr($p, 2)) ?></td><td class="num"><?= e(format_idr($a, 2)) ?></td><td class="num"><strong><?= e(format_idr($p + $a, 2)) ?></strong></td></tr>
+        <tr>
+          <td><strong><?= e($label) ?></strong></td>
+          <td class="num"><?= e(format_idr($p, 2)) ?></td>
+          <td class="num <?= $a < 0 ? 'neg' : '' ?>"><?= e(format_idr($a, 2)) ?></td>
+          <td class="num strong"><?= e(format_idr($p + $a, 2)) ?></td>
+        </tr>
       <?php endforeach; ?>
-        <tr><td><strong>Total</strong></td><td class="num"><strong><?= e(format_idr(array_sum($purchaseData), 2)) ?></strong></td><td class="num"><strong><?= e(format_idr(array_sum($purchaseAdjustment), 2)) ?></strong></td><td class="num"><strong><?= e(format_idr($totalPurchases, 2)) ?></strong></td></tr>
+        <tr class="total-row">
+          <td>Total</td>
+          <td class="num"><?= e(format_idr(array_sum($purchaseData), 2)) ?></td>
+          <td class="num"><?= e(format_idr(array_sum($purchaseAdjustment), 2)) ?></td>
+          <td class="num"><?= e(format_idr($totalPurchases, 2)) ?></td>
+        </tr>
       </tbody>
     </table>
   </div>
 </div>
 
-<div class="section-card">
-  <div class="section-head"><h2>Bank Balances</h2></div>
+<div class="sheet">
+  <div class="sheet-head">
+    <div class="sheet-title-wrap"><span class="sheet-no">04</span><span class="sheet-title">Bank balances</span></div>
+    <span class="sheet-meta">Month end</span>
+  </div>
   <div class="table-wrap">
-    <table>
+    <table class="data">
       <thead><tr><th>Entity</th><th class="num">Balance</th></tr></thead>
       <tbody>
       <?php foreach (ENTITIES as $entity => $label): ?>
         <tr><td><?= e($label) ?></td><td class="num"><?= e(format_idr($bank[$entity], 2)) ?></td></tr>
       <?php endforeach; ?>
-        <tr><td><strong>Total</strong></td><td class="num"><strong><?= e(format_idr($totalBank, 2)) ?></strong></td></tr>
+        <tr class="total-row"><td>Total</td><td class="num"><?= e(format_idr($totalBank, 2)) ?></td></tr>
       </tbody>
     </table>
   </div>
 </div>
 
-<div class="section-card">
-  <div class="section-head"><h2>Inventory</h2></div>
+<div class="sheet">
+  <div class="sheet-head">
+    <div class="sheet-title-wrap"><span class="sheet-no">05</span><span class="sheet-title">Inventory</span></div>
+    <span class="sheet-meta">Month end</span>
+  </div>
   <div class="table-wrap">
-    <table>
+    <table class="data">
       <thead><tr><th>Bucket</th><th class="num">Value</th></tr></thead>
       <tbody>
       <?php foreach ($inventory as $metric => $value): ?>
         <tr><td><?= e(metric_defs()[$metric]['label']) ?></td><td class="num"><?= e(format_idr($value, 2)) ?></td></tr>
       <?php endforeach; ?>
-        <tr><td><strong>Total</strong></td><td class="num"><strong><?= e(format_idr($totalInventory, 2)) ?></strong></td></tr>
+        <tr class="total-row"><td>Total</td><td class="num"><?= e(format_idr($totalInventory, 2)) ?></td></tr>
       </tbody>
     </table>
   </div>
 </div>
 
-<div class="section-card">
-  <div class="section-head"><h2>Operating Costs</h2></div>
+<div class="sheet">
+  <div class="sheet-head">
+    <div class="sheet-title-wrap"><span class="sheet-no">06</span><span class="sheet-title">Operating costs</span></div>
+    <span class="sheet-meta">Month end</span>
+  </div>
   <div class="table-wrap">
-    <table>
+    <table class="data">
       <thead><tr><th>Cost</th><?php foreach (ENTITIES as $label): ?><th class="num"><?= e($label) ?></th><?php endforeach; ?><th class="num">Total</th></tr></thead>
       <tbody>
       <?php foreach ($costs as $metric => $byEntity): ?>
         <tr>
           <td><?= e(metric_defs()[$metric]['label']) ?></td>
           <?php foreach (ENTITIES as $entity => $label): ?><td class="num"><?= e(format_idr($byEntity[$entity], 2)) ?></td><?php endforeach; ?>
-          <td class="num"><strong><?= e(format_idr($costTotals[$metric], 2)) ?></strong></td>
+          <td class="num strong"><?= e(format_idr($costTotals[$metric], 2)) ?></td>
         </tr>
       <?php endforeach; ?>
-        <tr><td><strong>Total</strong></td><?php foreach (ENTITIES as $entity => $label): ?><td class="num"><strong><?= e(format_idr(array_sum(array_column($costs, $entity)), 2)) ?></strong></td><?php endforeach; ?><td class="num"><strong><?= e(format_idr($totalCosts, 2)) ?></strong></td></tr>
+        <tr class="total-row">
+          <td>Total</td>
+          <?php foreach (ENTITIES as $entity => $label): ?><td class="num"><?= e(format_idr(array_sum(array_column($costs, $entity)), 2)) ?></td><?php endforeach; ?>
+          <td class="num"><?= e(format_idr($totalCosts, 2)) ?></td>
+        </tr>
       </tbody>
     </table>
   </div>
 </div>
 
-<div class="section-card">
-  <div class="section-head"><h2>Production Rolls</h2></div>
-  <div class="section-body">
-    <p>Bubble: <strong><?= e(number_format($productionBubble, 0, ',', '.')) ?></strong> rolls &middot;
-       Lakban: <strong><?= e(number_format($productionLakban, 0, ',', '.')) ?></strong> rolls</p>
+<div class="sheet">
+  <div class="sheet-head">
+    <div class="sheet-title-wrap"><span class="sheet-no">07</span><span class="sheet-title">Production rolls</span></div>
+    <span class="sheet-meta">Manual input</span>
+  </div>
+  <div class="table-wrap">
+    <table class="data">
+      <thead><tr><th>Line</th><th class="num">Rolls</th></tr></thead>
+      <tbody>
+        <tr><td>Bubble</td><td class="num"><?= e(number_format($productionBubble, 0, ',', '.')) ?></td></tr>
+        <tr><td>Lakban</td><td class="num"><?= e(number_format($productionLakban, 0, ',', '.')) ?></td></tr>
+      </tbody>
+    </table>
   </div>
 </div>
 
 <?php if (!$closed && $missing): ?>
-<div class="section-card">
-  <div class="section-head"><h2>Missing required input</h2></div>
-  <div class="section-body">
+<div class="sheet">
+  <div class="sheet-head">
+    <div class="sheet-title-wrap"><span class="sheet-no">!</span><span class="sheet-title">Missing required input</span></div>
+    <span class="sheet-meta"><?= count($missing) ?> item<?= count($missing) === 1 ? '' : 's' ?></span>
+  </div>
+  <div class="sheet-body">
     <ul class="missing-list">
       <?php foreach ($missing as $item): ?><li><?= e($item) ?></li><?php endforeach; ?>
     </ul>
@@ -388,21 +497,37 @@ ui_header('Monthly Report', 'report.php');
 </div>
 <?php endif; ?>
 
-<div class="actions">
-  <?php if (!$closed): ?>
-    <form method="post" class="inline-form">
-      <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-      <input type="hidden" name="period" value="<?= e($period) ?>">
-      <input type="hidden" name="action" value="close">
-      <button type="submit" class="btn btn-primary" <?= $missing ? 'disabled title="Fill the missing inputs first"' : '' ?>>Close month &amp; freeze API figures</button>
-    </form>
-  <?php else: ?>
-    <form method="post" class="inline-form">
-      <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-      <input type="hidden" name="period" value="<?= e($period) ?>">
-      <input type="hidden" name="action" value="reopen">
-      <button type="submit" class="btn btn-outline">Reopen month</button>
-    </form>
-  <?php endif; ?>
+<div class="sheet no-print">
+  <div class="sheet-head">
+    <div class="sheet-title-wrap"><span class="sheet-no">08</span><span class="sheet-title">Month status</span></div>
+    <span class="sheet-meta"><?= $closed ? 'Closed' : 'Open' ?></span>
+  </div>
+  <div class="sheet-body">
+    <div class="between">
+      <div>
+        <div class="figure-kicker"><?= $closed ? 'Frozen at close' : 'Live API data' ?></div>
+        <div class="strong mt-8"><?= $closed ? 'This month is closed. API figures are frozen.' : 'This month is open. API figures are live.' ?></div>
+        <p class="small muted mt-8">Closing freezes sales and purchases for this month. Reopening returns the report to live data.</p>
+        <?php if ($closedInfo): ?><p class="small muted">Closed <?= e(str_replace('|', ' by ', $closedInfo)) ?>.</p><?php endif; ?>
+      </div>
+      <div class="row">
+        <?php if (!$closed): ?>
+          <form method="post" class="inline-form">
+            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+            <input type="hidden" name="period" value="<?= e($period) ?>">
+            <input type="hidden" name="action" value="close">
+            <button type="submit" class="btn btn-signal" <?= $missing ? 'disabled title="Fill the missing inputs first"' : '' ?>>Close month &amp; freeze</button>
+          </form>
+        <?php else: ?>
+          <form method="post" class="inline-form">
+            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+            <input type="hidden" name="period" value="<?= e($period) ?>">
+            <input type="hidden" name="action" value="reopen">
+            <button type="submit" class="btn btn-outline">Reopen month</button>
+          </form>
+        <?php endif; ?>
+      </div>
+    </div>
+  </div>
 </div>
 <?php ui_footer(); ?>

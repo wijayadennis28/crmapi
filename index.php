@@ -1,8 +1,9 @@
 <?php
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/EspoClient.php';
+require_once __DIR__ . '/ui.php';
 
-// ── Inputs ────────────────────────────────────────────────────────────────────
+// ── Inputs ────────────────────────────────────────────────────
 $year         = (int)($_GET['year']   ?? date('Y'));
 $activeModule = $_GET['module'] ?? array_key_first(MODULES);
 $activeSite   = $_GET['site']   ?? array_key_first(INSTANCES);
@@ -43,7 +44,7 @@ try {
     $error = $e->getMessage();
 }
 
-// ── Aggregates ────────────────────────────────────────────────────────────────
+// ── Aggregates ────────────────────────────────────────────────
 $totalCount  = array_sum(array_column($summary, 'count'));
 $totalAmount = array_sum(array_column($summary, 'total'));
 $months      = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -53,232 +54,281 @@ foreach ($summary as $mo => $data) {
     $chartCounts[]  = $data['count'];
     $chartAmounts[] = round($data['total'], 2);
 }
-$peakMonth = !empty($chartCounts) ? $months[array_search(max($chartCounts), $chartCounts)] : '-';
+$maxCount    = $chartCounts ? max($chartCounts) : 0;
+$peakMonth   = $totalCount ? $months[array_search($maxCount, $chartCounts)] : '—';
+$activeMonths = count(array_filter($summary, fn($v) => ($v['count'] ?? 0) > 0));
+$avgPerMonth  = $activeMonths ? $totalAmount / $activeMonths : 0;
+$siteLabel    = INSTANCES[$activeSite]['name'];
+$moduleLabel  = MODULES[$activeModule];
+$cacheNote    = !empty($_GET['flush']) && $_GET['flush'] === '1' ? 'Cache cleared' : 'Cached ' . CACHE_TTL . 's';
+
+ui_header($moduleLabel . ' — ' . $siteLabel, 'index.php', [
+    'head'        => '<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>',
+    'mobile_meta' => $siteLabel,
+]);
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title><?= htmlspecialchars(INSTANCES[$activeSite]['name']) ?> — CRM Dashboard</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
-</head>
-<body>
-
-<div class="loader-overlay" id="loader"><div class="spinner"></div></div>
-
-<div class="layout">
-
-  <!-- Sidebar -->
-  <aside class="sidebar">
-    <div class="sidebar-logo">
-      <h2>&#9685; TOP CRM Dashboard</h2>
-      <p>TOP Analytics</p>
+<div class="docket-head">
+  <div class="eyebrow">
+    <span class="doc-no">01 / DASHBOARD</span>
+    <span class="dot">/</span>
+    <span><?= $year ?></span>
+    <span class="dot">/</span>
+    <span><?= e($cacheNote) ?></span>
+  </div>
+  <div class="docket-title-row">
+    <div>
+      <h1 class="docket-title"><?= e($moduleLabel) ?> <span class="thin">/ <?= e($siteLabel) ?></span></h1>
+      <p class="docket-sub">Live EspoCRM monthly totals. Switch site and module below, or open the monthly report desk.</p>
     </div>
-    <!-- Site switcher tabs -->
-    <div style="padding:10px 12px;border-bottom:1px solid var(--border);display:flex;gap:6px;flex-wrap:wrap">
-      <?php foreach (INSTANCES as $siteKey => $siteCfg): ?>
-      <a href="?site=<?= urlencode($siteKey) ?>&module=<?= urlencode($activeModule) ?>&year=<?= $year ?>"
-         class="btn <?= $activeSite === $siteKey ? 'btn-primary' : 'btn-outline' ?>"
-         style="height:28px;font-size:.75rem;padding:0 10px">
-        <?= htmlspecialchars($siteCfg['name']) ?>
+    <div class="docket-actions">
+      <span class="tag tag-signal">API live</span>
+      <a class="btn btn-outline btn-sm" href="input.php">Monthly input</a>
+      <a class="btn btn-outline btn-sm" href="report.php">Report</a>
+    </div>
+  </div>
+</div>
+
+<div class="dashboard-bar">
+  <div class="tab-strip" aria-label="Sites">
+    <?php foreach (INSTANCES as $siteKey => $siteCfg): ?>
+      <a class="tab <?= $activeSite === $siteKey ? 'active' : '' ?>"
+         href="?site=<?= urlencode($siteKey) ?>&module=<?= urlencode($activeModule) ?>&year=<?= $year ?>">
+        <?= e($siteCfg['name']) ?>
       </a>
-      <?php endforeach; ?>
-    </div>
-    <!-- Monthly report tools -->
-    <div style="padding:10px 12px;border-bottom:1px solid var(--border);display:flex;gap:6px;flex-wrap:wrap">
-      <a href="input.php" class="btn btn-outline" style="height:28px;font-size:.75rem;padding:0 10px">Monthly Input</a>
-      <a href="mapping.php" class="btn btn-outline" style="height:28px;font-size:.75rem;padding:0 10px">Mappings</a>
-      <a href="report.php" class="btn btn-outline" style="height:28px;font-size:.75rem;padding:0 10px">Report</a>
-    </div>
-    <nav class="sidebar-nav">
-      <?php foreach (MODULES as $key => $label): ?>
-      <a href="?site=<?= urlencode($activeSite) ?>&module=<?= urlencode($key) ?>&year=<?= $year ?>"
-         class="<?= $activeModule === $key ? 'active' : '' ?>">
-        <span class="nav-icon">&#9632;</span>
-        <?= htmlspecialchars($label) ?>
+    <?php endforeach; ?>
+  </div>
+  <div class="module-strip" aria-label="Modules">
+    <?php foreach (MODULES as $key => $label): ?>
+      <a class="module-tab <?= $activeModule === $key ? 'active' : '' ?>"
+         href="?site=<?= urlencode($activeSite) ?>&module=<?= urlencode($key) ?>&year=<?= $year ?>">
+        <?= e($label) ?>
       </a>
-      <?php endforeach; ?>
-    </nav>
-  </aside>
+    <?php endforeach; ?>
+  </div>
+</div>
 
-  <!-- Main -->
-  <div class="main">
-    <header class="topbar">
-      <h1><?= htmlspecialchars(INSTANCES[$activeSite]['name']) ?> &mdash; <?= htmlspecialchars(MODULES[$activeModule]) ?> &mdash; <?= $year ?></h1>
-      <div class="topbar-right">
-        <span style="font-size:.8rem;color:var(--muted)">
-          <?= !empty($_GET['flush']) && $_GET['flush'] === '1' ? '&#10003; Cache cleared' : 'Cached ' . CACHE_TTL . 's' ?>
-        </span>
-      </div>
-    </header>
+<?php if ($error): ?>
+  <div class="notice notice-danger" role="alert">Could not load EspoCRM: <?= e($error) ?></div>
+<?php endif; ?>
 
-    <div class="content">
+<form method="get" class="toolbar">
+  <input type="hidden" name="module" value="<?= e($activeModule) ?>">
+  <input type="hidden" name="site" value="<?= e($activeSite) ?>">
+  <div class="field">
+    <label for="year">Year</label>
+    <input class="input" type="number" id="year" name="year" value="<?= $year ?>" min="2000" max="2100">
+  </div>
+  <button type="submit" name="flush" value="0" class="btn btn-primary btn-sm">Refresh</button>
+  <button type="submit" name="flush" value="1" class="btn btn-outline btn-sm" title="Clear cache and reload fresh data">Force refresh</button>
+  <span class="spacer"></span>
+  <div class="export-links">
+    <a class="btn btn-outline btn-sm" href="export.php?site=<?= urlencode($activeSite) ?>&module=<?= urlencode($activeModule) ?>&year=<?= $year ?>&month=all&format=csv">Export CSV</a>
+    <a class="btn btn-outline btn-sm" href="export.php?site=<?= urlencode($activeSite) ?>&module=<?= urlencode($activeModule) ?>&year=<?= $year ?>&month=all&format=excel">Export Excel</a>
+  </div>
+</form>
 
-      <?php if ($error): ?>
-      <div class="alert alert-error">&#9888; <?= htmlspecialchars($error) ?></div>
-      <?php endif; ?>
+<div class="figures">
+  <div class="figure">
+    <div class="figure-kicker">Total records</div>
+    <div class="figure-number"><?= e(number_format($totalCount, 0, ',', '.')) ?></div>
+    <div class="figure-note">All months, <?= $year ?></div>
+  </div>
+  <div class="figure">
+    <div class="figure-kicker">Total amount</div>
+    <div class="figure-number">Rp <?= e(number_format($totalAmount, 0, ',', '.')) ?></div>
+    <div class="figure-note">Sum of order values</div>
+  </div>
+  <div class="figure">
+    <div class="figure-kicker">Average / active month</div>
+    <div class="figure-number">Rp <?= e(number_format($avgPerMonth, 0, ',', '.')) ?></div>
+    <div class="figure-note"><?= $activeMonths ?> active month<?= $activeMonths === 1 ? '' : 's' ?></div>
+  </div>
+  <div class="figure">
+    <div class="figure-kicker">Peak month</div>
+    <div class="figure-number small"><?= e($peakMonth) ?></div>
+    <div class="figure-note">Highest record count</div>
+  </div>
+</div>
 
-      <!-- Controls -->
-      <form method="get" class="controls" id="filterForm">
-        <input type="hidden" name="module" value="<?= htmlspecialchars($activeModule) ?>">
-        <input type="hidden" name="site"   value="<?= htmlspecialchars($activeSite) ?>">
-        <div class="control-group">
-          <label>Year</label>
-          <input type="number" name="year" value="<?= $year ?>" min="2000" max="2100" style="width:90px">
-        </div>
-        <button type="submit" name="flush" value="0" class="btn btn-primary" onclick="document.getElementById('loader').classList.add('show')">
-          &#8635; Refresh
-        </button>
-        <button type="submit" name="flush" value="1" class="btn btn-outline" onclick="document.getElementById('loader').classList.add('show')" title="Clear cache and reload fresh data">
-          &#9851; Force Refresh
-        </button>
-        <a href="export.php?site=<?= urlencode($activeSite) ?>&module=<?= urlencode($activeModule) ?>&year=<?= $year ?>&month=all&format=csv"
-           class="btn btn-success" id="csvBtn">
-          &#8659; Export CSV
-        </a>
-        <a href="export.php?site=<?= urlencode($activeSite) ?>&module=<?= urlencode($activeModule) ?>&year=<?= $year ?>&month=all&format=excel"
-           class="btn btn-accent" id="xlsBtn">
-          &#8659; Export Excel
-        </a>
-      </form>
+<div class="chart-grid">
+  <div class="chart-sheet">
+    <div class="chart-head">
+      <span class="chart-title">Monthly record count</span>
+      <span class="chart-meta"><?= e($moduleLabel) ?> / <?= $year ?></span>
+    </div>
+    <div class="chart-wrap"><canvas id="chartCount" aria-label="Monthly record count chart" role="img"></canvas></div>
+  </div>
+  <div class="chart-sheet">
+    <div class="chart-head">
+      <span class="chart-title">Monthly total amount</span>
+      <span class="chart-meta">IDR / <?= $year ?></span>
+    </div>
+    <div class="chart-wrap"><canvas id="chartAmount" aria-label="Monthly total amount chart" role="img"></canvas></div>
+  </div>
+</div>
 
-      <!-- Stat cards -->
-      <div class="stat-grid">
-        <div class="stat-card blue">
-          <div class="label">Total Records</div>
-          <div class="value"><?= number_format($totalCount) ?></div>
-          <div class="sub">All months <?= $year ?></div>
-        </div>
-        <div class="stat-card green">
-          <div class="label">Total Amount</div>
-          <div class="value"><?= number_format($totalAmount, 0) ?></div>
-          <div class="sub">Sum of order values</div>
-        </div>
-        <div class="stat-card amber">
-          <div class="label">Avg / Month</div>
-          <div class="value"><?= $totalCount ? number_format($totalAmount / max(1, array_sum(array_map(fn($v) => $v['count'] > 0 ? 1 : 0, $summary))), 0) : '0' ?></div>
-          <div class="sub">Active months only</div>
-        </div>
-        <div class="stat-card red">
-          <div class="label">Peak Month</div>
-          <div class="value"><?= $peakMonth ?></div>
-          <div class="sub">Highest record count</div>
-        </div>
-      </div>
-
-      <!-- Charts -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px">
-        <div class="chart-card">
-          <h3>Monthly Record Count</h3>
-          <div class="chart-wrap"><canvas id="chartCount"></canvas></div>
-        </div>
-        <div class="chart-card">
-          <h3>Monthly Total Amount</h3>
-          <div class="chart-wrap"><canvas id="chartAmount"></canvas></div>
-        </div>
-      </div>
-
-      <!-- Monthly breakdown table -->
-      <div class="table-card">
-        <div class="table-card-header">
-          <h3>Monthly Breakdown &mdash; <?= htmlspecialchars(MODULES[$activeModule]) ?> (<?= $year ?>)</h3>
-          <div style="display:flex;gap:8px">
-            <?php for ($m = 1; $m <= 12; $m++):
-              $mk = str_pad($m, 2, '0', STR_PAD_LEFT); ?>
-            <a href="export.php?site=<?= urlencode($activeSite) ?>&module=<?= urlencode($activeModule) ?>&year=<?= $year ?>&month=<?= $mk ?>&format=csv"
-               class="btn btn-outline" style="height:30px;font-size:.75rem;padding:0 10px">
-              <?= $months[$m-1] ?> CSV
-            </a>
-            <?php endfor; ?>
-          </div>
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Month</th>
-                <th>Records</th>
-                <th>Total Amount</th>
-                <th>Export</th>
-              </tr>
-            </thead>
-            <tbody>
-              <?php foreach ($summary as $mk => $data):
-                $idx   = (int)$mk - 1;
-                $badge = $data['count'] === 0 ? 'badge-gray' : ($data['count'] === max($chartCounts) ? 'badge-green' : 'badge-blue');
-              ?>
-              <tr>
-                <td><strong><?= $months[$idx] ?> <?= $year ?></strong></td>
-                <td><span class="badge <?= $badge ?>"><?= number_format($data['count']) ?></span></td>
-                <td><?= number_format($data['total'], 2) ?></td>
-                <td>
-                  <a href="export.php?site=<?= urlencode($activeSite) ?>&module=<?= urlencode($activeModule) ?>&year=<?= $year ?>&month=<?= $mk ?>&format=csv"
-                     class="btn btn-success" style="height:26px;font-size:.73rem;padding:0 8px">CSV</a>
-                  <a href="export.php?site=<?= urlencode($activeSite) ?>&module=<?= urlencode($activeModule) ?>&year=<?= $year ?>&month=<?= $mk ?>&format=excel"
-                     class="btn btn-accent"  style="height:26px;font-size:.73rem;padding:0 8px;margin-left:4px">XLS</a>
-                </td>
-              </tr>
-              <?php endforeach; ?>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-    </div><!-- /content -->
-  </div><!-- /main -->
-</div><!-- /layout -->
+<div class="sheet">
+  <div class="sheet-head">
+    <div class="sheet-title-wrap"><span class="sheet-no">01</span><span class="sheet-title">Monthly breakdown</span></div>
+    <span class="sheet-meta"><?= e($moduleLabel) ?> / <?= $year ?></span>
+  </div>
+  <div class="table-wrap">
+    <table class="data">
+      <thead>
+        <tr>
+          <th>Month</th>
+          <th class="num">Records</th>
+          <th class="num">Total amount</th>
+          <th>Export</th>
+        </tr>
+      </thead>
+      <tbody>
+        <?php foreach ($summary as $mk => $data):
+          $idx = (int)$mk - 1;
+          $isPeak = $data['count'] > 0 && $data['count'] === $maxCount;
+        ?>
+          <tr>
+            <td>
+              <strong><?= e($months[$idx]) ?> <?= $year ?></strong>
+              <?php if ($isPeak): ?><span class="tag tag-signal ml-6">Peak</span><?php endif; ?>
+            </td>
+            <td class="num">
+              <?php if ($data['count'] === 0): ?>
+                <span class="tag tag-muted">0</span>
+              <?php else: ?>
+                <?= e(number_format($data['count'], 0, ',', '.')) ?>
+              <?php endif; ?>
+            </td>
+            <td class="num"><?= e(number_format($data['total'], 2, ',', '.')) ?></td>
+            <td>
+              <a class="small" href="export.php?site=<?= urlencode($activeSite) ?>&module=<?= urlencode($activeModule) ?>&year=<?= $year ?>&month=<?= $mk ?>&format=csv">CSV</a>
+              <span class="muted">/</span>
+              <a class="small" href="export.php?site=<?= urlencode($activeSite) ?>&module=<?= urlencode($activeModule) ?>&year=<?= $year ?>&month=<?= $mk ?>&format=excel">XLS</a>
+            </td>
+          </tr>
+        <?php endforeach; ?>
+        <tr class="total-row">
+          <td>Total</td>
+          <td class="num"><?= e(number_format($totalCount, 0, ',', '.')) ?></td>
+          <td class="num"><?= e(number_format($totalAmount, 2, ',', '.')) ?></td>
+          <td></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
 
 <script>
 const months  = <?= json_encode($months) ?>;
 const counts  = <?= json_encode($chartCounts) ?>;
 const amounts = <?= json_encode($chartAmounts) ?>;
 
-const sharedOpts = {
-  responsive: true, maintainAspectRatio: false,
-  plugins: { legend: { display: false } },
-  scales: {
-    x: { grid: { display: false } },
-    y: { beginAtZero: true, grid: { color: '#f1f5f9' } }
-  }
-};
+if (window.Chart) {
+  Chart.defaults.font.family = "'Archivo', 'Helvetica Neue', Arial, sans-serif";
+  Chart.defaults.font.size = 10;
+  Chart.defaults.color = '#62665f';
 
-new Chart(document.getElementById('chartCount'), {
-  type: 'bar',
-  data: {
-    labels: months,
-    datasets: [{ data: counts, backgroundColor: '#2563eb', borderRadius: 5 }]
-  },
-  options: sharedOpts
-});
+  const compact = new Intl.NumberFormat('id-ID', { notation: 'compact', maximumFractionDigits: 1 });
+  const money   = new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 });
 
-new Chart(document.getElementById('chartAmount'), {
-  type: 'line',
-  data: {
-    labels: months,
-    datasets: [{
-      data: amounts,
-      borderColor: '#0ea5e9',
-      backgroundColor: 'rgba(14,165,233,.1)',
-      fill: true, tension: .35, pointRadius: 4,
-      pointBackgroundColor: '#0ea5e9'
-    }]
-  },
-  options: sharedOpts
-});
+  const base = {
+    responsive: true,
+    maintainAspectRatio: false,
+    animation: { duration: 180 },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#141414',
+        titleFont: { family: "'Archivo', sans-serif", size: 11, weight: '600' },
+        bodyFont: { family: "'Archivo', sans-serif", size: 11 },
+        padding: 10,
+        displayColors: false,
+        cornerRadius: 1
+      }
+    },
+    scales: {
+      x: {
+        grid: { display: false },
+        border: { color: '#141414' },
+        ticks: { font: { size: 10 } }
+      },
+      y: {
+        beginAtZero: true,
+        grid: { color: '#e6e8e2', drawTicks: false },
+        border: { display: false },
+        ticks: { font: { size: 10 }, padding: 6 }
+      }
+    }
+  };
+
+  new Chart(document.getElementById('chartCount'), {
+    type: 'bar',
+    data: {
+      labels: months,
+      datasets: [{
+        data: counts,
+        backgroundColor: '#f2c200',
+        hoverBackgroundColor: '#d9a900',
+        borderRadius: 0,
+        borderSkipped: false,
+        barPercentage: 0.58
+      }]
+    },
+    options: {
+      ...base,
+      plugins: {
+        ...base.plugins,
+        tooltip: {
+          ...base.plugins.tooltip,
+          callbacks: { label: (ctx) => `${money.format(ctx.parsed.y)} records` }
+        }
+      },
+      scales: {
+        ...base.scales,
+        y: {
+          ...base.scales.y,
+          ticks: { ...base.scales.y.ticks, callback: (value) => compact.format(value) }
+        }
+      }
+    }
+  });
+
+  new Chart(document.getElementById('chartAmount'), {
+    type: 'line',
+    data: {
+      labels: months,
+      datasets: [{
+        data: amounts,
+        borderColor: '#141414',
+        backgroundColor: 'rgba(242, 194, 0, .16)',
+        fill: true,
+        tension: 0.25,
+        borderWidth: 2,
+        pointRadius: 3,
+        pointBackgroundColor: '#141414',
+        pointBorderColor: '#f2c200',
+        pointBorderWidth: 2,
+        pointHoverRadius: 4
+      }]
+    },
+    options: {
+      ...base,
+      plugins: {
+        ...base.plugins,
+        tooltip: {
+          ...base.plugins.tooltip,
+          callbacks: { label: (ctx) => `Rp ${money.format(ctx.parsed.y)}` }
+        }
+      },
+      scales: {
+        ...base.scales,
+        y: {
+          ...base.scales.y,
+          ticks: { ...base.scales.y.ticks, callback: (value) => compact.format(value) }
+        }
+      }
+    }
+  });
+}
 </script>
-
-<script>
-// Auto-shrink stat values that are too long to fit at the default size
-document.querySelectorAll('.stat-card .value').forEach(function(el) {
-  var len = el.textContent.replace(/[^0-9]/g, '').length;
-  if      (len >= 13) el.style.fontSize = '1.05rem';
-  else if (len >= 10) el.style.fontSize = '1.25rem';
-  else if (len >= 7)  el.style.fontSize = '1.5rem';
-});
-</script>
-</body>
-</html>
+<?php ui_footer(); ?>

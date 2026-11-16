@@ -6,14 +6,22 @@ function e(mixed $value): string
     return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
 }
 
-function ui_header(string $title, string $active = ''): void
+function ui_stamp(bool $closed, string $open = 'Open', string $closedLabel = 'Closed'): string
+{
+    return '<span class="stamp ' . ($closed ? 'closed' : 'open') . '">' . e($closed ? $closedLabel : $open) . '</span>';
+}
+
+function ui_header(string $title, string $active = '', array $options = []): void
 {
     $links = [
-        'index.php'   => 'Dashboard',
-        'input.php'   => 'Monthly Input',
-        'mapping.php' => 'Mappings',
-        'report.php'  => 'Report',
+        'index.php'   => ['01', 'Dashboard'],
+        'input.php'   => ['02', 'Monthly Input'],
+        'mapping.php' => ['03', 'Mappings'],
+        'report.php'  => ['04', 'Report'],
     ];
+    $user       = auth_user();
+    $head       = $options['head'] ?? '';
+    $mobileMeta = $options['mobile_meta'] ?? 'TOP / FINANCE';
     ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -22,27 +30,64 @@ function ui_header(string $title, string $active = ''): void
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title><?= e($title) ?> — TOP CRM</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/style.css">
+<?= $head ?>
 </head>
 <body>
-<div class="app-nav">
-  <span class="brand">&#9685; TOP CRM</span>
-  <?php foreach ($links as $href => $label): ?>
-    <a href="<?= e($href) ?>" class="<?= $active === $href ? 'active' : '' ?>"><?= e($label) ?></a>
-  <?php endforeach; ?>
-  <span class="spacer"></span>
-  <span class="nav-user"><?= e(auth_user() ?? '') ?></span>
-  <a href="login.php?logout=1">Sign out</a>
-</div>
-<div class="app-body">
+<a class="skip-link" href="#main">Skip to content</a>
+<input type="checkbox" id="nav-toggle" class="nav-toggle" aria-label="Open navigation">
+<label for="nav-toggle" class="nav-scrim" aria-hidden="true"></label>
+
+<aside class="rail">
+  <div class="rail-inner">
+    <a class="brand" href="index.php">
+      <span class="brand-mark">TOP</span>
+      <span class="brand-sub">Triniti Optima Packindo<br>Monthly report desk</span>
+    </a>
+
+    <nav class="rail-nav" aria-label="Main">
+      <?php foreach ($links as $href => [$num, $label]): ?>
+        <a href="<?= e($href) ?>" class="rail-link <?= $active === $href ? 'active' : '' ?>" <?= $active === $href ? 'aria-current="page"' : '' ?>>
+          <span class="rail-num"><?= e($num) ?></span>
+          <span class="rail-label"><?= e($label) ?></span>
+        </a>
+      <?php endforeach; ?>
+    </nav>
+
+    <div class="rail-foot">
+      <?php if ($user): ?>
+        <span class="rail-user">Signed in as <strong><?= e($user) ?></strong></span>
+        <a class="rail-signout" href="login.php?logout=1">Sign out</a>
+      <?php else: ?>
+        <a class="rail-signout" href="login.php">Sign in</a>
+      <?php endif; ?>
+    </div>
+  </div>
+</aside>
+
+<div class="shell">
+  <div class="mobile-bar">
+    <label for="nav-toggle" class="menu-btn">Menu</label>
+    <span class="mobile-brand">TOP</span>
+    <span class="mobile-meta"><?= e($mobileMeta) ?></span>
+  </div>
+
+  <div class="progress" id="page-progress" aria-hidden="true"><span></span></div>
+
+  <main id="main" class="page">
+    <div class="page-inner">
 <?php
 }
 
 function ui_footer(): void
 {
     ?>
-</div><!-- /app-body -->
+    </div><!-- /page-inner -->
+  </main>
+</div><!-- /shell -->
+<script src="assets/app.js" defer></script>
 </body>
 </html>
 <?php
