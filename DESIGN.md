@@ -8,13 +8,15 @@ colors:
   concrete: "#eceee9"
   rule: "#d5d8d2"
   muted: "#62665f"
-  signal: "#f2c200"
-  signal-deep: "#d9a900"
+  signal: "#c62828"
+  signal-soft: "#fdecec"
+  signal-deep: "#9f1d1d"
+  signal-on-dark: "#ff8a80"
   ok: "#1f6b4f"
-  danger: "#b3261e"
+  danger: "#7f1d1d"
   rail-hover: "#22221f"
   rail-line: "#2a2a27"
-  row-hover: "#fffbe6"
+  row-hover: "#fdf1f0"
   surface-hover: "#fdfdfb"
   dash: "#c3c7bf"
   chart-grid: "#e6e8e2"
@@ -114,7 +116,7 @@ components:
 
 **Creative North Star: "The Packing Docket"**
 
-A finance desk modeled on warehouse paperwork: shipping dockets, packing slips, stamped approvals, and ledger rules. The interface is paper on a concrete work surface, with ink structure and one strip of safety yellow. It is dense because the work is dense.
+A finance desk modeled on warehouse paperwork: shipping dockets, packing slips, stamped approvals, and ledger rules. The interface is paper on a concrete work surface, with ink structure and one strip of signal red. It is dense because the work is dense.
 
 It refuses the generic SaaS dashboard: no blue accent, no soft rounded cards, no shadowed stat tiles, no gradient chrome. It also refuses literal pastiche: no cardboard texture, no fake barcodes, no novelty stamps where a status label will do.
 
@@ -130,8 +132,10 @@ It refuses the generic SaaS dashboard: no blue accent, no soft rounded cards, no
 A restrained ink-and-paper palette with one high-visibility accent.
 
 ### Primary
-- **Safety Yellow** (`#f2c200`): active navigation, selected route, total rows, primary actions, focus marks. It should occupy less than 15% of a screen.
-- **Safety Yellow Deep** (`#d9a900`): hover and emphasis on yellow surfaces.
+- **Signal Red** (`#c62828`): active navigation, total rows, primary actions, focus marks. It should occupy less than 15% of a screen.
+- **Signal Red Deep** (`#9f1d1d`): hover and emphasis on red surfaces.
+- **Signal Red on Ink** (`#ff8a80`): small red marks on the ink rail, where the main red is too dark.
+- **Signal Red Soft** (`#fdecec`): tinted total rows and focused inputs.
 
 ### Neutral
 - **Ink** (`#141414`): rail, body text, strong rules, primary buttons.
@@ -143,11 +147,13 @@ A restrained ink-and-paper palette with one high-visibility accent.
 
 ### Semantic
 - **Deep Green** (`#1f6b4f`): closed, positive, recovered values.
-- **Oxide Red** (`#b3261e`): missing, negative, destructive actions.
+- **Deep Oxblood** (`#7f1d1d`): missing, negative, destructive actions. It is darker than the signal red so the accent and the warning state do not collapse into one.
 
-**The One Signal Rule.** Yellow is the only decorative accent. Never add a second accent hue to solve a hierarchy problem; use weight, rules, or space.
+**The One Signal Rule.** Red is the only decorative accent. Never add a second accent hue to solve a hierarchy problem; use weight, rules, or space.
 
-**The No Blue Rule.** Blue is not a brand color. Status is ink/green/red; selection is yellow.
+**The Two Reds Rule.** Signal red is for action and selection. Deep oxblood is for negative and missing states. Do not use the bright signal red for an error, and do not use oxblood for a primary button.
+
+**The No Blue Rule.** Blue is not a brand color. Status is ink/green/oxblood; selection is signal red.
 
 ## Typography
 
@@ -194,39 +200,39 @@ Flat by default. Depth comes from tonal layering (concrete ground, paper sheet, 
 
 ### Buttons
 - **Shape:** 2px radius, 34px height, uppercase 10.5px label.
-- **Primary:** ink background, paper text; hover flips to safety yellow with ink text.
-- **Signal:** safety yellow background, ink text; used for the main save/close action.
-- **Outline:** transparent with ink border; hover fills yellow.
+- **Primary:** ink background, paper text; hover flips to signal red with paper text.
+- **Signal:** signal red background, paper text; used for the main save/close action.
+- **Outline:** transparent with ink border; hover fills red with paper text.
 - **Focus:** 2px ink outline, 2px offset. Disabled: 40% opacity.
 
 ### Inputs
 - **Style:** 1px rule border, white ground, 2px radius, 36px height.
-- **Focus:** ink border plus 2px yellow ring.
-- **Matrix cells:** transparent with a bottom rule; yellow tint on focus; missing cells get a red left mark only after interaction.
+- **Focus:** ink border plus 2px signal-red ring.
+- **Matrix cells:** transparent with a bottom rule; pale red tint on focus; missing cells get a deep-oxblood left mark only after interaction.
 - **Numbers:** right-aligned, tabular; a small formatted preview sits under each cell.
 
 ### Tables
 - Header: 9.5px uppercase, muted, 1px ink bottom rule.
-- Rows: 1px rule, pale yellow hover.
-- Total rows: 2px ink top rule, 3px double bottom rule, yellow tint.
-- Negative values in oxide red; positive in deep green.
+- Rows: 1px rule, pale red hover.
+- Total rows: 2px ink top rule, 3px double bottom rule, pale red tint.
+- Negative values in deep oxblood; positive in deep green.
 
 ### Navigation
 - Ink rail with numbered links (`01`–`04`).
-- Active: safety yellow field, ink text, yellow left mark.
+- Active: signal red field, paper text, red left mark.
 - Mobile: sticky ink bar with a `Menu` label; drawer closes on navigation or scrim click.
 
 ### Signature Components
 - **Stamp:** open/closed status, bordered and slightly rotated.
-- **Completion ticks:** 26 small boxes; filled boxes turn yellow.
-- **Target meter:** yellow fill against a bordered track, with a black target tick and a legend.
+- **Completion ticks:** 26 small boxes; filled boxes turn signal red.
+- **Target meter:** signal-red fill against a bordered track, with a black target tick and a legend.
 - **Route control:** Auto / TOP / MMP / SAE segmented radio per mapping row.
 
 ## Do's and Don'ts
 
 ### Do:
 - **Do** keep tables dense and numbers tabular.
-- **Do** use one signal yellow per screen for selection, totals, or the primary action.
+- **Do** use one signal red per screen for selection, totals, or the primary action.
 - **Do** use hard rules, square sheets, and stamped statuses to create hierarchy.
 - **Do** preserve the print stylesheet on the report; hide navigation and actions.
 - **Do** show missing inputs and fallback mappings explicitly.

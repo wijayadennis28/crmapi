@@ -49,7 +49,7 @@ No logo or brand guide was supplied. The interface uses a typographic wordmark a
 
 - Accuracy before decoration. Every figure must be traceable to an API row or a manual entry.
 - Density is a feature. Finance users need more rows per screen, not more whitespace.
-- One signal color. Safety yellow marks selection, totals, and focus; everything else is ink and paper.
+- One signal color. Signal red marks selection, totals, and focus; everything else is ink and paper.
 - Familiar affordances, specific character. Standard tables and forms, in the grammar of factory paperwork.
 - Nothing closes silently. Missing inputs, fallback mappings, and frozen months are visible.
 

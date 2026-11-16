@@ -267,8 +267,8 @@ if (window.Chart) {
       labels: months,
       datasets: [{
         data: counts,
-        backgroundColor: '#f2c200',
-        hoverBackgroundColor: '#d9a900',
+        backgroundColor: '#c62828',
+        hoverBackgroundColor: '#9f1d1d',
         borderRadius: 0,
         borderSkipped: false,
         barPercentage: 0.58
@@ -300,13 +300,13 @@ if (window.Chart) {
       datasets: [{
         data: amounts,
         borderColor: '#141414',
-        backgroundColor: 'rgba(242, 194, 0, .16)',
+        backgroundColor: 'rgba(198, 40, 40, .14)',
         fill: true,
         tension: 0.25,
         borderWidth: 2,
         pointRadius: 3,
         pointBackgroundColor: '#141414',
-        pointBorderColor: '#f2c200',
+        pointBorderColor: '#c62828',
         pointBorderWidth: 2,
         pointHoverRadius: 4
       }]
