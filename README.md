@@ -58,18 +58,27 @@ Public routes: `/`, `/input`, `/mapping`, `/report`, `/login`, `/export`.
 
 - `.htaccess` rewrites clean routes to the PHP files and 301s direct `.php` URLs to the clean form.
 - `router.php` does the same for local development.
-- Blocked from the web: `config*`, include files, `router.php`, `test.php`, `HOW_TO_CUSTOMIZE.php`, `docs/`, `cache/`, `data/`, and `.md` files.
+- Blocked from the web: `config*`, include files, `router.php`, `sources.php`, `test.php`, `HOW_TO_CUSTOMIZE.php`, `tests/`, `docs/`, `cache/`, `data/`, and `.md` files.
 
 If the host ignores `.htaccess`, the `.php` files remain reachable; use a front controller with a `public/` docroot for the strongest isolation.
 
-## What comes from the API
+## Data sources
 
-- Sales by month and entity: `SalesOrder.grandTotalAmount` filtered by `dateOrdered`.
-- Purchases: `PurchaseOrder.grandTotalAmount` filtered by `dateOrdered`.
-- Lakban sales/rolls: accounts containing `LAKBAN`.
-- Daily actual sales: `SalesOrder.dateOrdered`.
+| Field | Source |
+|---|---|
+| Sales by month and entity | `SalesOrder.grandTotalAmount` filtered by `dateOrdered`, split with the account mapping |
+| Purchases | `PurchaseOrder.grandTotalAmount` filtered by `dateOrdered`, split with the supplier mapping |
+| Petty cash | `CPettyCash` when the month has records; manual fallback and optional override |
+| Salaries / THR | Manual for now; `CPayroll` does not yet have a usable monthly/entity split |
+| Bank balances | Manual |
+| Inventory (5 buckets) | Manual; the API has current stock, not a historical valuation |
+| Bank transport / operations | Manual |
+| Electricity | Manual; required for PT TOP only |
+| Production rolls | Manual; production logs are unreliable |
+| Sales target | Manual |
+| Laba/Rugi | Computed |
 
-Everything else is manual because the CRM has no bank, inventory valuation, target, or reliable production/cost module.
+`CPettyCash` sits on site1 (all PT TOP) and site2 (`MMP`, `SLP`). The report maps `MMP` to CV MMP and `SLP` to CV SAE. Rows without one of those labels are shown as an unmapped warning and are not silently assigned.
 
 ## Backups
 
@@ -92,5 +101,5 @@ BASE_URL=http://127.0.0.1:8000 bash tests/routes_test.sh
 ## Security notes
 
 - `config.php` still contains live EspoCRM API keys. Rotate them and move them to a local untracked file before making the repo public.
-- `.htaccess` blocks `test.php`, `HOW_TO_CUSTOMIZE.php`, `docs/`, `cache/`, and `data/` in production. If the host ignores `.htaccess`, remove those files or move them outside the webroot.
+- `.htaccess` blocks `test.php`, `HOW_TO_CUSTOMIZE.php`, `sources.php`, `tests/`, `docs/`, `cache/`, and `data/` in production. If the host ignores `.htaccess`, remove or move those files outside the webroot.
 - The monthly report pages use a session login and CSRF tokens; the old dashboard/export do not.

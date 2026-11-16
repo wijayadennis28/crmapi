@@ -138,13 +138,14 @@ function metric_defs(): array
         'cost_petty_cash' => [
             'label' => 'Petty cash', 'group' => 'Costs', 'scopes' => ['TOP', 'MMP', 'SAE'],
             'allow_negative' => false, 'required' => true, 'unit' => 'IDR',
+            'source' => 'api_or_manual', 'api' => 'petty_cash',
         ],
         'cost_salary_thr' => [
             'label' => 'Salaries / THR', 'group' => 'Costs', 'scopes' => ['TOP', 'MMP', 'SAE'],
             'allow_negative' => false, 'required' => true, 'unit' => 'IDR',
         ],
         'cost_electricity' => [
-            'label' => 'Electricity', 'group' => 'Costs', 'scopes' => ['TOP', 'MMP', 'SAE'],
+            'label' => 'Electricity', 'group' => 'Costs', 'scopes' => ['TOP'],
             'allow_negative' => false, 'required' => true, 'unit' => 'IDR',
         ],
         'production_rolls_bubble' => [
@@ -294,7 +295,7 @@ function save_inputs(string $period, array $values, string $note, string $user):
     return [];
 }
 
-function missing_inputs(string $period): array
+function missing_inputs(string $period, array $api = []): array
 {
     $inputs = get_inputs($period);
     $missing = [];
@@ -303,7 +304,12 @@ function missing_inputs(string $period): array
             continue;
         }
         foreach ($def['scopes'] as $scope) {
-            if (!array_key_exists($metric, $inputs[$scope] ?? [])) {
+            $hasManual = array_key_exists($metric, $inputs[$scope] ?? []);
+            $hasApi = false;
+            if (!$hasManual && ($def['source'] ?? 'manual') === 'api_or_manual' && !empty($def['api'])) {
+                $hasApi = !empty($api[$def['api']]['present'][$scope]);
+            }
+            if (!$hasManual && !$hasApi) {
                 $missing[] = ($scope === 'ALL' ? 'Group' : entity_label($scope)) . ' — ' . $def['label'];
             }
         }

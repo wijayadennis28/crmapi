@@ -19,10 +19,11 @@ $privateFiles = [
     'auth.php',
     'ui.php',
     'router.php',
+    'sources.php',
     'test.php',
     'HOW_TO_CUSTOMIZE.php',
 ];
-$privatePrefixes = ['cache/', 'data/', 'docs/', '.git/'];
+$privatePrefixes = ['cache/', 'data/', 'docs/', 'tests/', '.git/'];
 
 $isPrivate = in_array(basename($path), $privateFiles, true);
 foreach ($privatePrefixes as $prefix) {

@@ -69,6 +69,8 @@ check "store.php" "/store.php" 404
 check "auth.php" "/auth.php" 404
 check "ui.php" "/ui.php" 404
 check "router.php" "/router.php" 404
+check "sources.php" "/sources.php" 404
+check "tests directory" "/tests/" 404
 check "test.php" "/test.php" 404
 check "HOW_TO_CUSTOMIZE.php" "/HOW_TO_CUSTOMIZE.php" 404
 

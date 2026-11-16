@@ -24,6 +24,13 @@ define('INSTANCES', [
 define('CACHE_TTL', 300); // 5 minutes
 define('CACHE_DIR', __DIR__ . '/cache');
 
+// CPettyCash uses entity labels in its `name` field on site2.
+// site1 is always PT TOP; site2 labels map to the report entities.
+define('PETTYCASH_ENTITY_MAP', [
+    'MMP' => 'MMP',
+    'SLP' => 'SAE',
+]);
+
 // Modules to display on dashboard
 define('MODULES', [
     'SalesOrder'    => 'Sales Orders',

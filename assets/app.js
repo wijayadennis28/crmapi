@@ -39,17 +39,22 @@
     const updateInput = (input) => {
       const raw = input.value.trim();
       const value = raw === '' ? NaN : Number(raw);
+      const apiPresent = input.dataset.apiPresent === '1';
+      const apiPreview = input.dataset.apiPreview || '';
       const preview = input.parentElement.querySelector('.cell-preview');
-      if (preview) preview.textContent = format(value, input.dataset.unit);
+      const previewText = raw !== ''
+        ? (apiPreview ? `Override: ${format(value, input.dataset.unit)}` : format(value, input.dataset.unit))
+        : apiPreview;
+      if (preview) preview.textContent = previewText;
 
       if (input.dataset.required === '1' && input.dataset.touched === '1') {
-        input.classList.toggle('is-missing', raw === '');
+        input.classList.toggle('is-missing', raw === '' && !apiPresent);
       }
     };
 
     const updateCompletion = () => {
       const required = inputs.filter((input) => input.dataset.required === '1');
-      const missing = required.filter((input) => input.value.trim() === '').length;
+      const missing = required.filter((input) => input.value.trim() === '' && input.dataset.apiPresent !== '1').length;
       const filled = required.length - missing;
 
       if (completion) completion.textContent = `${filled}/${required.length}`;
@@ -65,8 +70,13 @@
       inputs.forEach((input) => {
         const group = input.dataset.group;
         if (!group) return;
-        const value = Number(input.value);
-        if (Number.isFinite(value) && input.value.trim() !== '') {
+        let value = null;
+        if (input.value.trim() !== '') {
+          value = Number(input.value);
+        } else if (input.dataset.apiPresent === '1') {
+          value = Number(input.dataset.apiAmount || 0);
+        }
+        if (Number.isFinite(value) && value !== null) {
           sums[group] = (sums[group] || 0) + value;
         }
       });

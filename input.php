@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/store.php';
+require_once __DIR__ . '/sources.php';
 require_once __DIR__ . '/ui.php';
 require_login();
 
@@ -22,9 +23,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save'
 $inputs  = get_inputs($period);
 $note    = get_period_note($period);
 $closed  = is_closed($period);
-$missing = missing_inputs($period);
-$savedAt = last_saved($period);
 $defs    = metric_defs();
+
+if ($closed) {
+    $closedActuals = get_actuals($period);
+    $pettyCash = [
+        'values'   => array_fill_keys(array_keys(ENTITIES), 0.0),
+        'present'  => array_fill_keys(array_keys(ENTITIES), false),
+        'unmapped' => [],
+        'errors'   => [],
+        'records'  => 0,
+    ];
+    foreach (ENTITIES as $entity => $label) {
+        if (isset($closedActuals[$entity]['cost_petty_cash'])) {
+            $pettyCash['values'][$entity] = (float)$closedActuals[$entity]['cost_petty_cash'];
+            $pettyCash['present'][$entity] = true;
+        }
+    }
+} else {
+    $pettyCash = petty_cash_values($period);
+}
+$apiValues   = ['petty_cash' => $pettyCash];
+$missing     = missing_inputs($period, $apiValues);
+$pettyResolved = petty_cash_resolved($inputs, $pettyCash);
+$pettySource   = $closed ? 'Frozen' : petty_cash_source($inputs, $pettyCash);
+$pettySourceClass = $pettySource === 'API' ? 'tag-ok' : ($pettySource === 'Override' ? 'tag-signal' : 'tag-muted');
+$savedAt     = last_saved($period);
 
 $groups = [];
 foreach ($defs as $metric => $def) {
@@ -50,7 +74,9 @@ foreach ($defs as $metric => $def) {
         } elseif (str_starts_with($metric, 'inv_')) {
             $inventoryTotal += $value;
         } elseif (str_starts_with($metric, 'cost_')) {
-            $costTotal += $value;
+            $costTotal += $metric === 'cost_petty_cash'
+                ? (float)($pettyResolved[$scope] ?? 0)
+                : $value;
         }
     }
 }
@@ -71,7 +97,7 @@ ui_header('Monthly Input', 'input', ['mobile_meta' => period_label($period)]);
   <div class="docket-title-row">
     <div>
       <h1 class="docket-title">Monthly input <span class="thin">/ <?= e(period_label($period)) ?></span></h1>
-      <p class="docket-sub">Enter only the figures that do not come from EspoCRM. Sales and purchases are pulled from the API; production rolls and the fields below are manual.</p>
+      <p class="docket-sub">Enter only the figures that do not come from EspoCRM. Sales and purchases are pulled from the API; petty cash is pulled from CPettyCash when the month has records. All other rows are manual unless marked API.</p>
     </div>
     <div class="docket-actions">
       <?= ui_stamp($closed) ?>
@@ -86,6 +112,28 @@ ui_header('Monthly Input', 'input', ['mobile_meta' => period_label($period)]);
 <?php foreach ($errors as $error): ?>
   <div class="notice notice-danger" role="alert"><?= e($error) ?></div>
 <?php endforeach; ?>
+
+<?php if ($pettyCash['errors']): ?>
+  <div class="notice notice-warn">
+    Could not read CPettyCash: <?= e(implode('; ', $pettyCash['errors'])) ?>. Petty cash is manual for this month.
+  </div>
+<?php endif; ?>
+<?php if ($pettyCash['unmapped']): ?>
+  <?php
+    $unmappedCount = array_sum(array_column($pettyCash['unmapped'], 'count'));
+    $unmappedTotal = petty_cash_unmapped_total($pettyCash);
+  ?>
+  <div class="notice notice-warn">
+    <?= (int)$unmappedCount ?> CPettyCash row<?= $unmappedCount === 1 ? '' : 's' ?>
+    have no entity label (<?= e(petty_cash_unmapped_labels($pettyCash)) ?>) and total
+    Rp <?= e(format_idr($unmappedTotal, 2)) ?>. They are not included in the API totals; fix the CRM label or enter an override.
+  </div>
+<?php endif; ?>
+<?php if (!$closed && !$pettyCash['errors'] && $pettyCash['records'] === 0): ?>
+  <div class="notice notice-info">
+    No CPettyCash records for <?= e(period_label($period)) ?>; enter petty cash manually.
+  </div>
+<?php endif; ?>
 
 <?php if ($closed): ?>
   <div class="notice notice-info">This month is closed and locked. Reopen it from the <a href="report?period=<?= urlencode($period) ?>">report</a> to edit.</div>
@@ -142,7 +190,12 @@ ui_header('Monthly Input', 'input', ['mobile_meta' => period_label($period)]);
                 <?php foreach ($metrics as $metric => $def): ?>
                   <tr>
                     <td class="row-label">
-                      <strong><?= e($def['label']) ?></strong>
+                      <strong>
+                        <?= e($def['label']) ?>
+                        <?php if ($metric === 'cost_petty_cash'): ?>
+                          <span class="tag <?= e($pettySourceClass) ?> ml-6"><?= e($pettySource) ?></span>
+                        <?php endif; ?>
+                      </strong>
                       <span class="unit"><?= e($def['unit'] === 'IDR' ? 'IDR' : $def['unit']) ?></span>
                     </td>
                     <?php foreach (SCOPES as $scope): ?>
@@ -165,6 +218,25 @@ ui_header('Monthly Input', 'input', ['mobile_meta' => period_label($period)]);
                           } elseif (str_contains($metric, 'adjustment')) {
                               $groupKey = 'adjustment';
                           }
+
+                          $apiPresent = $metric === 'cost_petty_cash' && !empty($pettyCash['present'][$scope]);
+                          $apiAmount  = $apiPresent ? (float)$pettyCash['values'][$scope] : 0.0;
+                          $apiLabel   = $closed ? 'Frozen' : 'API';
+                          $apiPreview = $metric === 'cost_petty_cash'
+                              ? ($apiPresent ? $apiLabel . ': Rp ' . format_idr($apiAmount, 2) : 'No API records')
+                              : '';
+                          $previewText = '';
+                          if ($value !== null) {
+                              $previewText = $metric === 'cost_petty_cash'
+                                  ? 'Override: Rp ' . format_idr((float)$value, 2)
+                                  : '';
+                          } elseif ($apiPreview !== '') {
+                              $previewText = $apiPreview;
+                          }
+                          $ariaLabel = $def['label'] . ' — ' . scope_label($scope);
+                          if ($apiPreview !== '') {
+                              $ariaLabel .= ' — ' . $apiPreview;
+                          }
                         ?>
                         <td class="cell">
                           <div class="cell-wrap">
@@ -180,9 +252,12 @@ ui_header('Monthly Input', 'input', ['mobile_meta' => period_label($period)]);
                               data-required="<?= $required ? '1' : '0' ?>"
                               data-group="<?= e($groupKey) ?>"
                               data-touched="0"
-                              aria-label="<?= e($def['label'] . ' — ' . scope_label($scope)) ?>"
+                              data-api-present="<?= $apiPresent ? '1' : '0' ?>"
+                              data-api-amount="<?= $apiPresent ? e(number_format($apiAmount, 2, '.', '')) : '' ?>"
+                              data-api-preview="<?= e($apiPreview) ?>"
+                              aria-label="<?= e($ariaLabel) ?>"
                               <?= $closed ? 'disabled' : '' ?>>
-                            <span class="cell-preview" aria-hidden="true"></span>
+                            <span class="cell-preview" aria-hidden="true"><?= e($previewText) ?></span>
                           </div>
                         </td>
                       <?php else: ?>

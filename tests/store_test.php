@@ -2,6 +2,7 @@
 // Run: php tests/store_test.php
 define('DB_PATH', ':memory:');
 require_once __DIR__ . '/../store.php';
+require_once __DIR__ . '/../sources.php';
 
 $failed = 0;
 function check(string $label, bool $condition): void
@@ -66,5 +67,43 @@ check('RIZKI MOTOR exception maps to SAE', suggest_entity('site2', 'RIZKI MOTOR'
 check('CAHAYA MULYO supplier maps to MMP', suggest_entity('site2', 'PT. CAHAYA MULYO PLASTIK', 'supplier') === 'MMP');
 check('TOKO ATK supplier maps to SAE', suggest_entity('site2', 'TOKO ATK 1368 SURABAYA', 'supplier') === 'SAE');
 check('laba/rugi formula', abs(calc_laba_rugi(100, 50, 25, 30, 20) - 125.0) < 0.0001);
+
+// ── Petty cash source rules ─────────────────────────────────
+check('site1 petty cash maps to TOP', petty_cash_entity_for('site1', 'anything') === 'TOP');
+check('site2 MMP maps to MMP', petty_cash_entity_for('site2', 'MMP') === 'MMP');
+check('site2 SLP maps to SAE', petty_cash_entity_for('site2', ' SLP ') === 'SAE');
+check('unknown petty cash label is unmapped', petty_cash_entity_for('site2', 'beli tiner 2 liter') === null);
+
+$petty = [
+    'values'  => ['TOP' => 10.0, 'MMP' => 20.0, 'SAE' => 30.0],
+    'present' => ['TOP' => true, 'MMP' => true, 'SAE' => false],
+];
+$pettyInputs = ['MMP' => ['cost_petty_cash' => 5.0]];
+$resolved = petty_cash_resolved($pettyInputs, $petty);
+check('petty cash manual override wins', $resolved['MMP'] === 5.0);
+check('petty cash API fallback', $resolved['TOP'] === 10.0);
+check('petty cash no API/no manual is zero', $resolved['SAE'] === 0.0);
+check('petty cash source override', petty_cash_source($pettyInputs, $petty) === 'Override');
+check('petty cash source API', petty_cash_source([], $petty) === 'API');
+check('petty cash source manual', petty_cash_source([], ['present' => ['TOP' => false, 'MMP' => false, 'SAE' => false]]) === 'Manual');
+
+check('electricity is TOP only', metric_defs()['cost_electricity']['scopes'] === ['TOP']);
+
+$apiPeriod = '2026-04';
+$apiValues = [];
+foreach (metric_defs() as $metric => $def) {
+    if ($metric === 'cost_petty_cash') {
+        continue;
+    }
+    foreach ($def['scopes'] as $scope) {
+        $apiValues[$scope][$metric] = '1000';
+    }
+}
+$errors = save_inputs($apiPeriod, $apiValues, 'test', 'tester');
+check('required inputs saved without petty cash', $errors === []);
+check('petty cash missing without API', count(missing_inputs($apiPeriod)) === 3);
+check('petty cash filled by API', missing_inputs($apiPeriod, [
+    'petty_cash' => ['present' => ['TOP' => true, 'MMP' => true, 'SAE' => true]],
+]) === []);
 
 exit($failed === 0 ? 0 : 1);

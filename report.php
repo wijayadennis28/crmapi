@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/store.php';
+require_once __DIR__ . '/sources.php';
 require_once __DIR__ . '/ui.php';
 require_once __DIR__ . '/EspoClient.php';
 require_login();
@@ -81,10 +82,13 @@ function build_purchases(string $period): array
     return $out;
 }
 
-function build_actual_rows(string $period): array
+function build_actual_rows(string $period, array $pettyCash): array
 {
     $sales     = build_sales($period);
     $purchases = build_purchases($period);
+    $inputs    = get_inputs($period);
+    $petty     = petty_cash_resolved($inputs, $pettyCash);
+    $source    = petty_cash_source($inputs, $pettyCash);
     $errors    = array_merge($sales['errors'], $purchases['errors']);
     $rows      = [];
 
@@ -103,6 +107,12 @@ function build_actual_rows(string $period): array
             'value'  => $purchases['data'][$entity] ?? 0,
             'detail' => $purchases['detail'][$entity] ?? [],
         ];
+        $rows[] = [
+            'scope'  => $entity,
+            'metric' => 'cost_petty_cash',
+            'value'  => $petty[$entity] ?? 0,
+            'detail' => ['source' => $source],
+        ];
     }
 
     return [$rows, $sales['auto'] + $purchases['auto'], $errors];
@@ -115,17 +125,25 @@ if (!valid_period($period)) {
 
 $errors = [];
 $closed = is_closed($period);
+$pettyCash = $closed ? [
+    'values'   => array_fill_keys(array_keys(ENTITIES), 0.0),
+    'present'  => array_fill_keys(array_keys(ENTITIES), false),
+    'unmapped' => [],
+    'errors'   => [],
+    'records'  => 0,
+] : petty_cash_values($period);
+$apiValues = ['petty_cash' => $pettyCash];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     check_csrf();
     $action = $_POST['action'] ?? '';
 
     if ($action === 'close') {
-        $missing = missing_inputs($period);
+        $missing = missing_inputs($period, $apiValues);
         if ($missing) {
             $errors[] = 'Cannot close: ' . count($missing) . ' required input(s) are still missing.';
         } else {
-            [$rows, $auto, $apiErrors] = build_actual_rows($period);
+            [$rows, $auto, $apiErrors] = build_actual_rows($period, $pettyCash);
             if ($apiErrors) {
                 $errors = array_merge($errors, $apiErrors);
             } else {
@@ -145,6 +163,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $inputs = get_inputs($period);
 $closed = is_closed($period);
 $actuals = $closed ? get_actuals($period) : [];
+$pettyResolved = petty_cash_resolved($inputs, $pettyCash);
+$pettySource   = petty_cash_source($inputs, $pettyCash);
+$pettyActuals  = [];
 $autoMapped = 0;
 
 if ($actuals) {
@@ -156,6 +177,8 @@ if ($actuals) {
                 $salesData[$scope][substr($metric, 6)] = $value;
             } elseif ($metric === 'purchases') {
                 $purchaseData[$scope] = $value;
+            } elseif ($metric === 'cost_petty_cash') {
+                $pettyActuals[$scope] = $value;
             }
         }
     }
@@ -193,7 +216,13 @@ foreach (ENTITIES as $entity => $label) {
 
     foreach (array_keys(metric_defs()) as $metric) {
         if (str_starts_with($metric, 'cost_')) {
-            $costs[$metric][$entity] = (float)($inputs[$entity][$metric] ?? 0);
+            $value = (float)($inputs[$entity][$metric] ?? 0);
+            if ($metric === 'cost_petty_cash') {
+                $value = $closed
+                    ? (float)($pettyActuals[$entity] ?? $value)
+                    : (float)($pettyResolved[$entity] ?? $value);
+            }
+            $costs[$metric][$entity] = $value;
         }
     }
 }
@@ -220,7 +249,7 @@ foreach ($costs as $metric => $byEntity) {
 $productionBubble = (float)($inputs['ALL']['production_rolls_bubble'] ?? 0);
 $productionLakban = (float)($inputs['ALL']['production_rolls_lakban'] ?? 0);
 $labaRugi = calc_laba_rugi($totalSales, $totalInventory, $totalBank, $totalPurchases, $totalCosts);
-$missing = missing_inputs($period);
+$missing = missing_inputs($period, $apiValues);
 $targetDiff = $target !== null ? $totalSales - $target : null;
 $targetPct = $target ? ($totalSales / $target * 100) : null;
 $closedInfo = get_setting('closed:' . $period);
@@ -228,6 +257,8 @@ $closedInfo = get_setting('closed:' . $period);
 $targetFill  = $targetPct !== null ? max(0, min(100, (float)$targetPct)) : 0;
 $targetTone  = ($targetDiff !== null && $targetDiff < 0) ? 'neg' : 'pos';
 $liveLabel   = $closed ? 'frozen at close' : 'live';
+$pettyTag    = $closed ? 'Frozen' : $pettySource;
+$pettyTagClass = $pettyTag === 'API' ? 'tag-ok' : ($pettyTag === 'Override' ? 'tag-signal' : 'tag-muted');
 
 ui_header('Monthly Report', 'report', ['mobile_meta' => period_label($period)]);
 ?>
@@ -268,6 +299,22 @@ ui_header('Monthly Report', 'report', ['mobile_meta' => period_label($period)]);
 <?php foreach ($errors as $error): ?>
   <div class="notice notice-danger" role="alert"><?= e($error) ?></div>
 <?php endforeach; ?>
+<?php if (!$closed && $pettyCash['errors']): ?>
+  <div class="notice notice-warn">
+    Could not read CPettyCash: <?= e(implode('; ', $pettyCash['errors'])) ?>. Petty cash uses manual input for this month.
+  </div>
+<?php endif; ?>
+<?php if (!$closed && $pettyCash['unmapped']): ?>
+  <?php
+    $unmappedCount = array_sum(array_column($pettyCash['unmapped'], 'count'));
+    $unmappedTotal = petty_cash_unmapped_total($pettyCash);
+  ?>
+  <div class="notice notice-warn">
+    <?= (int)$unmappedCount ?> CPettyCash row<?= $unmappedCount === 1 ? '' : 's' ?>
+    have no entity label (<?= e(petty_cash_unmapped_labels($pettyCash)) ?>) and total
+    Rp <?= e(format_idr($unmappedTotal, 2)) ?>. They are not included in the API totals; fix the CRM label or enter an override.
+  </div>
+<?php endif; ?>
 <?php if ($autoMapped > 0): ?>
   <div class="notice notice-warn">
     <?= $autoMapped ?> order/PO record<?= $autoMapped === 1 ? '' : 's' ?> used the fallback name rule. Save explicit mappings for an exact split.
@@ -452,7 +499,12 @@ ui_header('Monthly Report', 'report', ['mobile_meta' => period_label($period)]);
       <tbody>
       <?php foreach ($costs as $metric => $byEntity): ?>
         <tr>
-          <td><?= e(metric_defs()[$metric]['label']) ?></td>
+          <td>
+            <?= e(metric_defs()[$metric]['label']) ?>
+            <?php if ($metric === 'cost_petty_cash'): ?>
+              <span class="tag <?= e($pettyTagClass) ?> ml-6"><?= e($pettyTag) ?></span>
+            <?php endif; ?>
+          </td>
           <?php foreach (ENTITIES as $entity => $label): ?><td class="num"><?= e(format_idr($byEntity[$entity], 2)) ?></td><?php endforeach; ?>
           <td class="num strong"><?= e(format_idr($costTotals[$metric], 2)) ?></td>
         </tr>
@@ -464,6 +516,9 @@ ui_header('Monthly Report', 'report', ['mobile_meta' => period_label($period)]);
         </tr>
       </tbody>
     </table>
+  </div>
+  <div class="sheet-body tight">
+    <p class="small muted">Petty cash uses CPettyCash when the month has records; manual override otherwise. Closed months show the frozen value.</p>
   </div>
 </div>
 
