@@ -25,7 +25,7 @@ It is not a generic CRM dashboard. It is the bridge between the CRM's order data
 - Two EspoCRM instances: TOP and MMP/SLP.
 - Three report entities: PT TOP, CV MMP, CV SAE.
 - The report follows the March 2026 management report (bubblewrap, lakban, bank, inventory, costs, laba/rugi).
-- Plain PHP 8.1+, SQLite, deployed on shared hosting. No build step.
+- Plain PHP 8.1+, MySQL in production (SQLite for local dev/tests), deployed on shared hosting. No build step.
 
 ## Capabilities and Constraints
 

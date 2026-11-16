@@ -4,10 +4,27 @@ require_once __DIR__ . '/config.local.php';
 const SCOPES = ['ALL', 'TOP', 'MMP', 'SAE'];
 const ENTITIES = ['TOP' => 'PT TOP', 'MMP' => 'CV MMP', 'SAE' => 'CV SAE'];
 
+function db_is_mysql(): bool
+{
+    // DB_PATH is set by tests, which always run on in-memory SQLite.
+    return !defined('DB_PATH') && defined('DB_DSN');
+}
+
 function db(): PDO
 {
     static $pdo = null;
     if ($pdo instanceof PDO) {
+        return $pdo;
+    }
+
+    $options = [
+        PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+    ];
+
+    if (db_is_mysql()) {
+        $pdo = new PDO(DB_DSN, DB_USER, DB_PASS, $options);
+        init_schema($pdo);
         return $pdo;
     }
 
@@ -24,10 +41,7 @@ function db(): PDO
         }
     }
 
-    $pdo = new PDO('sqlite:' . $path, null, null, [
-        PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-    ]);
+    $pdo = new PDO('sqlite:' . $path, null, null, $options);
     $pdo->exec('PRAGMA journal_mode = WAL');
     $pdo->exec('PRAGMA foreign_keys = ON');
     init_schema($pdo);
@@ -37,6 +51,80 @@ function db(): PDO
 
 function init_schema(PDO $pdo): void
 {
+    if (db_is_mysql()) {
+        $pdo->exec(<<<'SQL'
+CREATE TABLE IF NOT EXISTS monthly_inputs (
+    period      VARCHAR(7)   NOT NULL,
+    scope       VARCHAR(8)   NOT NULL,
+    metric      VARCHAR(64)  NOT NULL,
+    value       DOUBLE       NULL,
+    note        TEXT         NULL,
+    updated_at  DATETIME     NOT NULL,
+    updated_by  VARCHAR(100) NOT NULL,
+    PRIMARY KEY (period, scope, metric)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS monthly_actuals (
+    period      VARCHAR(7)   NOT NULL,
+    scope       VARCHAR(8)   NOT NULL,
+    metric      VARCHAR(64)  NOT NULL,
+    value       DOUBLE       NULL,
+    detail_json LONGTEXT     NULL,
+    captured_at DATETIME     NOT NULL,
+    PRIMARY KEY (period, scope, metric)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS account_entity_map (
+    site         VARCHAR(16)  NOT NULL,
+    account_id   VARCHAR(64)  NOT NULL,
+    account_name VARCHAR(255) NULL,
+    entity       VARCHAR(8)   NOT NULL,
+    updated_at   DATETIME     NULL,
+    PRIMARY KEY (site, account_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS supplier_entity_map (
+    site          VARCHAR(16)  NOT NULL,
+    supplier_id   VARCHAR(64)  NOT NULL,
+    supplier_name VARCHAR(255) NULL,
+    entity        VARCHAR(8)   NOT NULL,
+    updated_at    DATETIME     NULL,
+    PRIMARY KEY (site, supplier_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS input_history (
+    id         INT AUTO_INCREMENT PRIMARY KEY,
+    period     VARCHAR(7)   NULL,
+    scope      VARCHAR(8)   NULL,
+    metric     VARCHAR(64)  NULL,
+    old_value  DOUBLE       NULL,
+    new_value  DOUBLE       NULL,
+    note       TEXT         NULL,
+    changed_by VARCHAR(100) NULL,
+    changed_at DATETIME     NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS settings (
+    `key` VARCHAR(191) NOT NULL PRIMARY KEY,
+    value TEXT         NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS custom_fields (
+    id             INT AUTO_INCREMENT PRIMARY KEY,
+    label          VARCHAR(255) NOT NULL,
+    group_name     VARCHAR(100) NOT NULL,
+    role           VARCHAR(16)  NOT NULL DEFAULT 'cost',
+    required       TINYINT      NOT NULL DEFAULT 0,
+    allow_negative TINYINT      NOT NULL DEFAULT 0,
+    sort_order     INT          NOT NULL DEFAULT 0,
+    active         TINYINT      NOT NULL DEFAULT 1,
+    created_at     DATETIME     NOT NULL,
+    updated_at     DATETIME     NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+SQL);
+        return;
+    }
+
     $pdo->exec(<<<'SQL'
 CREATE TABLE IF NOT EXISTS monthly_inputs (
     period      TEXT NOT NULL,
@@ -392,7 +480,7 @@ function save_inputs(string $period, array $values, string $note, string $user):
     $pdo->beginTransaction();
     try {
         $del = $pdo->prepare('DELETE FROM monthly_inputs WHERE period = ? AND scope = ? AND metric = ?');
-        $set = $pdo->prepare('INSERT OR REPLACE INTO monthly_inputs (period, scope, metric, value, note, updated_at, updated_by) VALUES (?, ?, ?, ?, ?, ?, ?)');
+        $set = $pdo->prepare('REPLACE INTO monthly_inputs (period, scope, metric, value, note, updated_at, updated_by) VALUES (?, ?, ?, ?, ?, ?, ?)');
         $audit = $pdo->prepare('INSERT INTO input_history (period, scope, metric, old_value, new_value, note, changed_by, changed_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
 
         foreach ($changes as [$scope, $metric, $oldVal, $newVal]) {
@@ -443,7 +531,7 @@ function get_period_note(string $period): string
 
 function get_setting(string $key): ?string
 {
-    $stmt = db()->prepare('SELECT value FROM settings WHERE key = ?');
+    $stmt = db()->prepare('SELECT value FROM settings WHERE `key` = ?');
     $stmt->execute([$key]);
     $v = $stmt->fetchColumn();
     return $v === false ? null : (string)$v;
@@ -451,7 +539,7 @@ function get_setting(string $key): ?string
 
 function set_setting(string $key, string $value): void
 {
-    $stmt = db()->prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)');
+    $stmt = db()->prepare('REPLACE INTO settings (`key`, value) VALUES (?, ?)');
     $stmt->execute([$key, $value]);
 }
 
@@ -467,7 +555,7 @@ function close_period(string $period, string $user): void
 
 function reopen_period(string $period): void
 {
-    $stmt = db()->prepare('DELETE FROM settings WHERE key = ?');
+    $stmt = db()->prepare('DELETE FROM settings WHERE `key` = ?');
     $stmt->execute(['closed:' . $period]);
 }
 
@@ -528,7 +616,7 @@ function save_mappings(string $site, string $kind, array $map): int
     $pdo = db();
     $count = 0;
     $del = $pdo->prepare("DELETE FROM $table WHERE site = ? AND $idCol = ?");
-    $set = $pdo->prepare("INSERT OR REPLACE INTO $table (site, $idCol, $nameCol, entity, updated_at) VALUES (?, ?, ?, ?, ?)");
+    $set = $pdo->prepare("REPLACE INTO $table (site, $idCol, $nameCol, entity, updated_at) VALUES (?, ?, ?, ?, ?)");
 
     $pdo->beginTransaction();
     try {

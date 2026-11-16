@@ -5,7 +5,7 @@ Two parts in one PHP app:
 - **Dashboard** (`index.php`, `export.php`) — live monthly counts/totals from EspoCRM.
 - **Monthly report** (`input.php`, `mapping.php`, `report.php`) — combines API sales/purchases with figures that only exist outside EspoCRM (target, bank, inventory, some costs, production rolls).
 
-No Composer, no framework. PHP 8.1+, SQLite.
+No Composer, no framework. PHP 8.1+. MySQL in production; SQLite for local dev and tests.
 
 ## Run locally
 
@@ -29,8 +29,9 @@ php -S 127.0.0.1:8000 router.php
    php -r 'echo password_hash("your-password", PASSWORD_DEFAULT), "\n";'
    ```
 
-3. Make sure `data/` is writable by PHP. The app creates `data/app.sqlite`.
-   `data/.htaccess` denies web access on Apache. On Nginx or a custom setup, move `DATA_DIR` outside the document root or add an equivalent deny rule.
+3. Storage:
+   - **Production (MySQL):** uncomment `DB_DSN`, `DB_USER`, `DB_PASS` in `config.local.php` and point them at the hPanel database. The tables are created automatically on the first report page load. Credentials stay in `config.local.php`, which is gitignored.
+   - **Local dev / tests (SQLite):** leave the `DB_*` lines commented out. The app creates `data/app.sqlite`; make sure `data/` is writable. `data/.htaccess` denies web access on Apache. On Nginx or a custom setup, move `DATA_DIR` outside the document root or add an equivalent deny rule.
 
 4. Open `/login` and sign in. The dashboard itself remains public; the monthly report pages require login.
 
@@ -93,7 +94,7 @@ If the host ignores `.htaccess`, the `.php` files remain reachable; use a front 
 ## Backups
 
 - Code: git tag per release, plus a zip outside the repo.
-- Data: copy `data/app.sqlite` (and `-wal`/`-shm` when present) before schema changes or deploy. Do not put the SQLite file in git.
+- Data: export the MySQL database (`mysqldump`, or hPanel → phpMyAdmin → Export) before schema changes or deploy. For the SQLite fallback, copy `data/app.sqlite` (and `-wal`/`-shm` when present). Do not put either in git.
 
 ## Design system
 
