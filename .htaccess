@@ -1,0 +1,20 @@
+Options -Indexes
+DirectoryIndex index.php
+RewriteEngine On
+
+# 1. Never expose internal files, diagnostics, docs, or runtime data.
+RewriteRule ^(config(?:\.local(?:\.example)?)?|EspoClient|store|auth|ui|router|test|HOW_TO_CUSTOMIZE)\.php$ - [R=404,L,NC]
+RewriteRule ^(cache|data|docs)(/|$) - [R=404,L,NC]
+RewriteRule ^\.git(/|$) - [R=404,L,NC]
+RewriteRule \.(md|sqlite|sqlite3|log|env)$ - [R=404,L,NC]
+
+# 2. Direct .php requests -> clean URL, preserving subfolder and query string.
+RewriteCond %{THE_REQUEST} \s(.+?)\.php[\s?] [NC]
+RewriteRule ^ %1 [R=301,L,NE,QSA]
+
+# 3. /input/ -> /input, path-agnostic.
+RewriteCond %{REQUEST_URI} ^(.*)/(index|input|mapping|report|login|export)/$ [NC]
+RewriteRule ^ %1/%2 [R=301,L,NE,QSA]
+
+# 4. Clean public routes -> internal PHP.
+RewriteRule ^(index|input|mapping|report|login|export)$ $1.php [L,QSA]

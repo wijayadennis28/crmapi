@@ -3,12 +3,12 @@ require_once __DIR__ . '/auth.php';
 
 if (isset($_GET['logout'])) {
     logout();
-    header('Location: login.php');
+    header('Location: login');
     exit;
 }
 
 if (auth_user()) {
-    header('Location: input.php');
+    header('Location: input');
     exit;
 }
 
@@ -16,7 +16,7 @@ $error = null;
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     check_csrf();
     if (attempt_login(trim($_POST['user'] ?? ''), $_POST['password'] ?? '')) {
-        header('Location: input.php');
+        header('Location: input');
         exit;
     }
     $error = 'Invalid username or password.';

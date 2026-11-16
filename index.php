@@ -62,7 +62,7 @@ $siteLabel    = INSTANCES[$activeSite]['name'];
 $moduleLabel  = MODULES[$activeModule];
 $cacheNote    = !empty($_GET['flush']) && $_GET['flush'] === '1' ? 'Cache cleared' : 'Cached ' . CACHE_TTL . 's';
 
-ui_header($moduleLabel . ' — ' . $siteLabel, 'index.php', [
+ui_header($moduleLabel . ' — ' . $siteLabel, 'index', [
     'head'        => '<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>',
     'mobile_meta' => $siteLabel,
 ]);
@@ -82,8 +82,8 @@ ui_header($moduleLabel . ' — ' . $siteLabel, 'index.php', [
     </div>
     <div class="docket-actions">
       <span class="tag tag-signal">API live</span>
-      <a class="btn btn-outline btn-sm" href="input.php">Monthly input</a>
-      <a class="btn btn-outline btn-sm" href="report.php">Report</a>
+      <a class="btn btn-outline btn-sm" href="input">Monthly input</a>
+      <a class="btn btn-outline btn-sm" href="report">Report</a>
     </div>
   </div>
 </div>
@@ -122,8 +122,8 @@ ui_header($moduleLabel . ' — ' . $siteLabel, 'index.php', [
   <button type="submit" name="flush" value="1" class="btn btn-outline btn-sm" title="Clear cache and reload fresh data">Force refresh</button>
   <span class="spacer"></span>
   <div class="export-links">
-    <a class="btn btn-outline btn-sm" href="export.php?site=<?= urlencode($activeSite) ?>&module=<?= urlencode($activeModule) ?>&year=<?= $year ?>&month=all&format=csv">Export CSV</a>
-    <a class="btn btn-outline btn-sm" href="export.php?site=<?= urlencode($activeSite) ?>&module=<?= urlencode($activeModule) ?>&year=<?= $year ?>&month=all&format=excel">Export Excel</a>
+    <a class="btn btn-outline btn-sm" href="export?site=<?= urlencode($activeSite) ?>&module=<?= urlencode($activeModule) ?>&year=<?= $year ?>&month=all&format=csv">Export CSV</a>
+    <a class="btn btn-outline btn-sm" href="export?site=<?= urlencode($activeSite) ?>&module=<?= urlencode($activeModule) ?>&year=<?= $year ?>&month=all&format=excel">Export Excel</a>
   </div>
 </form>
 
@@ -201,9 +201,9 @@ ui_header($moduleLabel . ' — ' . $siteLabel, 'index.php', [
             </td>
             <td class="num"><?= e(number_format($data['total'], 2, ',', '.')) ?></td>
             <td>
-              <a class="small" href="export.php?site=<?= urlencode($activeSite) ?>&module=<?= urlencode($activeModule) ?>&year=<?= $year ?>&month=<?= $mk ?>&format=csv">CSV</a>
+              <a class="small" href="export?site=<?= urlencode($activeSite) ?>&module=<?= urlencode($activeModule) ?>&year=<?= $year ?>&month=<?= $mk ?>&format=csv">CSV</a>
               <span class="muted">/</span>
-              <a class="small" href="export.php?site=<?= urlencode($activeSite) ?>&module=<?= urlencode($activeModule) ?>&year=<?= $year ?>&month=<?= $mk ?>&format=excel">XLS</a>
+              <a class="small" href="export?site=<?= urlencode($activeSite) ?>&module=<?= urlencode($activeModule) ?>&year=<?= $year ?>&month=<?= $mk ?>&format=excel">XLS</a>
             </td>
           </tr>
         <?php endforeach; ?>

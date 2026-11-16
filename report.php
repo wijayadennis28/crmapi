@@ -131,13 +131,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 save_actuals($period, $rows);
                 close_period($period, auth_user());
-                header('Location: report.php?period=' . urlencode($period) . '&closed=1');
+                header('Location: report?period=' . urlencode($period) . '&closed=1');
                 exit;
             }
         }
     } elseif ($action === 'reopen') {
         reopen_period($period);
-        header('Location: report.php?period=' . urlencode($period) . '&reopened=1');
+        header('Location: report?period=' . urlencode($period) . '&reopened=1');
         exit;
     }
 }
@@ -229,7 +229,7 @@ $targetFill  = $targetPct !== null ? max(0, min(100, (float)$targetPct)) : 0;
 $targetTone  = ($targetDiff !== null && $targetDiff < 0) ? 'neg' : 'pos';
 $liveLabel   = $closed ? 'frozen at close' : 'live';
 
-ui_header('Monthly Report', 'report.php', ['mobile_meta' => period_label($period)]);
+ui_header('Monthly Report', 'report', ['mobile_meta' => period_label($period)]);
 ?>
 <div class="print-only print-head">
   <span>TOP — Triniti Optima Packindo</span>
@@ -253,8 +253,8 @@ ui_header('Monthly Report', 'report.php', ['mobile_meta' => period_label($period
     <div class="docket-actions">
       <?= ui_stamp($closed) ?>
       <button type="button" class="btn btn-outline btn-sm" data-print>Print</button>
-      <a class="btn btn-outline btn-sm" href="input.php?period=<?= urlencode($period) ?>">Edit input</a>
-      <a class="btn btn-outline btn-sm" href="mapping.php?period=<?= urlencode($period) ?>">Mappings</a>
+      <a class="btn btn-outline btn-sm" href="input?period=<?= urlencode($period) ?>">Edit input</a>
+      <a class="btn btn-outline btn-sm" href="mapping?period=<?= urlencode($period) ?>">Mappings</a>
     </div>
   </div>
 </div>
@@ -351,7 +351,7 @@ ui_header('Monthly Report', 'report.php', ['mobile_meta' => period_label($period
   </div>
   <div class="target">
     <?php if ($target === null): ?>
-      <p class="muted">No target entered for this month. <a href="input.php?period=<?= urlencode($period) ?>">Enter it</a>.</p>
+      <p class="muted">No target entered for this month. <a href="input?period=<?= urlencode($period) ?>">Enter it</a>.</p>
     <?php else: ?>
       <div class="target-head">
         <div>

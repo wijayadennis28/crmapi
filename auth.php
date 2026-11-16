@@ -18,7 +18,7 @@ function auth_user(): ?string
 function require_login(): void
 {
     if (!auth_user()) {
-        header('Location: login.php');
+        header('Location: login');
         exit;
     }
 }

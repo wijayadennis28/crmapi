@@ -14,7 +14,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save'
     check_csrf();
     $errors = save_inputs($period, $_POST['v'] ?? [], trim($_POST['note'] ?? ''), auth_user());
     if (!$errors) {
-        header('Location: input.php?period=' . urlencode($period) . '&saved=1');
+        header('Location: input?period=' . urlencode($period) . '&saved=1');
         exit;
     }
 }
@@ -58,7 +58,7 @@ foreach ($defs as $metric => $def) {
 $previous = date('Y-m', strtotime($period . '-01 -1 month'));
 $next     = date('Y-m', strtotime($period . '-01 +1 month'));
 
-ui_header('Monthly Input', 'input.php', ['mobile_meta' => period_label($period)]);
+ui_header('Monthly Input', 'input', ['mobile_meta' => period_label($period)]);
 ?>
 <div class="docket-head">
   <div class="eyebrow">
@@ -88,7 +88,7 @@ ui_header('Monthly Input', 'input.php', ['mobile_meta' => period_label($period)]
 <?php endforeach; ?>
 
 <?php if ($closed): ?>
-  <div class="notice notice-info">This month is closed and locked. Reopen it from the <a href="report.php?period=<?= urlencode($period) ?>">report</a> to edit.</div>
+  <div class="notice notice-info">This month is closed and locked. Reopen it from the <a href="report?period=<?= urlencode($period) ?>">report</a> to edit.</div>
 <?php elseif ($missing): ?>
   <div class="notice notice-warn">
     <?= count($missing) ?> required figure<?= count($missing) === 1 ? '' : 's' ?> still missing. You can save a draft, but the month cannot be closed until they are filled.
@@ -97,15 +97,15 @@ ui_header('Monthly Input', 'input.php', ['mobile_meta' => period_label($period)]
 
 <div class="period-bar">
   <div class="period-nav">
-    <a class="btn btn-outline btn-sm" href="input.php?period=<?= urlencode($previous) ?>">&larr; <?= e(date('M Y', strtotime($previous . '-01'))) ?></a>
+    <a class="btn btn-outline btn-sm" href="input?period=<?= urlencode($previous) ?>">&larr; <?= e(date('M Y', strtotime($previous . '-01'))) ?></a>
     <form method="get" class="row">
       <label class="sr-only" for="period">Month</label>
       <input class="input" type="month" id="period" name="period" value="<?= e($period) ?>" required>
       <button type="submit" class="btn btn-outline btn-sm">Load</button>
     </form>
-    <a class="btn btn-outline btn-sm" href="input.php?period=<?= urlencode($next) ?>"><?= e(date('M Y', strtotime($next . '-01'))) ?> &rarr;</a>
+    <a class="btn btn-outline btn-sm" href="input?period=<?= urlencode($next) ?>"><?= e(date('M Y', strtotime($next . '-01'))) ?> &rarr;</a>
   </div>
-  <a class="btn btn-outline btn-sm" href="report.php?period=<?= urlencode($period) ?>">View report</a>
+  <a class="btn btn-outline btn-sm" href="report?period=<?= urlencode($period) ?>">View report</a>
 </div>
 
 <form method="post" id="entry-form">
@@ -217,7 +217,7 @@ ui_header('Monthly Input', 'input.php', ['mobile_meta' => period_label($period)]
           <?php if (!$closed): ?>
             <button type="submit" class="btn btn-signal">Save monthly input</button>
           <?php endif; ?>
-          <a class="btn btn-outline" href="report.php?period=<?= urlencode($period) ?>">Go to report</a>
+          <a class="btn btn-outline" href="report?period=<?= urlencode($period) ?>">Go to report</a>
         </div>
       </div>
     </div>

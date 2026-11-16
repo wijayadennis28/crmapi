@@ -14,10 +14,10 @@ function ui_stamp(bool $closed, string $open = 'Open', string $closedLabel = 'Cl
 function ui_header(string $title, string $active = '', array $options = []): void
 {
     $links = [
-        'index.php'   => ['01', 'Dashboard'],
-        'input.php'   => ['02', 'Monthly Input'],
-        'mapping.php' => ['03', 'Mappings'],
-        'report.php'  => ['04', 'Report'],
+        'index'   => ['01', 'Dashboard'],
+        'input'   => ['02', 'Monthly Input'],
+        'mapping' => ['03', 'Mappings'],
+        'report'  => ['04', 'Report'],
     ];
     $user       = auth_user();
     $head       = $options['head'] ?? '';
@@ -42,7 +42,7 @@ function ui_header(string $title, string $active = '', array $options = []): voi
 
 <aside class="rail">
   <div class="rail-inner">
-    <a class="brand" href="index.php">
+    <a class="brand" href="./">
       <span class="brand-mark">TOP</span>
       <span class="brand-sub">Triniti Optima Packindo<br>Monthly report desk</span>
     </a>
@@ -59,9 +59,9 @@ function ui_header(string $title, string $active = '', array $options = []): voi
     <div class="rail-foot">
       <?php if ($user): ?>
         <span class="rail-user">Signed in as <strong><?= e($user) ?></strong></span>
-        <a class="rail-signout" href="login.php?logout=1">Sign out</a>
+        <a class="rail-signout" href="login?logout=1">Sign out</a>
       <?php else: ?>
-        <a class="rail-signout" href="login.php">Sign in</a>
+        <a class="rail-signout" href="login">Sign in</a>
       <?php endif; ?>
     </div>
   </div>

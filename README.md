@@ -7,6 +7,14 @@ Two parts in one PHP app:
 
 No Composer, no framework. PHP 8.1+, SQLite.
 
+## Run locally
+
+```bash
+php -S 127.0.0.1:8000 router.php
+```
+
+`.htaccess` handles clean URLs on Apache/LiteSpeed. PHP's built-in server ignores it, so `router.php` provides the same routes locally.
+
 ## Setup
 
 1. Copy the local config:
@@ -24,7 +32,7 @@ No Composer, no framework. PHP 8.1+, SQLite.
 3. Make sure `data/` is writable by PHP. The app creates `data/app.sqlite`.
    `data/.htaccess` denies web access on Apache. On Nginx or a custom setup, move `DATA_DIR` outside the document root or add an equivalent deny rule.
 
-4. Open `login.php` and sign in. The dashboard itself remains public; the monthly report pages require login.
+4. Open `/login` and sign in. The dashboard itself remains public; the monthly report pages require login.
 
 ## Monthly workflow
 
@@ -43,6 +51,16 @@ No Composer, no framework. PHP 8.1+, SQLite.
    - optional sales/purchase adjustments, with a note
 
 3. **Report** (`report.php`) — review the combined figures. “Close month” freezes the API sales and purchases in `monthly_actuals`; reopen if something changes.
+
+## URLs
+
+Public routes: `/`, `/input`, `/mapping`, `/report`, `/login`, `/export`.
+
+- `.htaccess` rewrites clean routes to the PHP files and 301s direct `.php` URLs to the clean form.
+- `router.php` does the same for local development.
+- Blocked from the web: `config*`, include files, `router.php`, `test.php`, `HOW_TO_CUSTOMIZE.php`, `docs/`, `cache/`, `data/`, and `.md` files.
+
+If the host ignores `.htaccess`, the `.php` files remain reachable; use a front controller with a `public/` docroot for the strongest isolation.
 
 ## What comes from the API
 
@@ -68,10 +86,11 @@ Everything else is manual because the CRM has no bank, inventory valuation, targ
 
 ```bash
 php tests/store_test.php
+BASE_URL=http://127.0.0.1:8000 bash tests/routes_test.sh
 ```
 
 ## Security notes
 
 - `config.php` still contains live EspoCRM API keys. Rotate them and move them to a local untracked file before making the repo public.
-- Delete or password-protect `test.php` and `HOW_TO_CUSTOMIZE.php` in production.
+- `.htaccess` blocks `test.php`, `HOW_TO_CUSTOMIZE.php`, `docs/`, `cache/`, and `data/` in production. If the host ignores `.htaccess`, remove those files or move them outside the webroot.
 - The monthly report pages use a session login and CSRF tokens; the old dashboard/export do not.

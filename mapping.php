@@ -24,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     save_mappings($site, 'account', $_POST['accounts'] ?? []);
     save_mappings($site, 'supplier', $_POST['suppliers'] ?? []);
-    header('Location: mapping.php?site=' . urlencode($site) . '&period=' . urlencode($period) . '&saved=1');
+    header('Location: mapping?site=' . urlencode($site) . '&period=' . urlencode($period) . '&saved=1');
     exit;
 }
 
@@ -79,7 +79,7 @@ foreach ($suppliers as $id => $row) {
 }
 $autoTotal = $site === 'site2' ? $autoAccounts + $autoSuppliers : 0;
 
-ui_header('Entity Mappings', 'mapping.php', ['mobile_meta' => period_label($period)]);
+ui_header('Entity Mappings', 'mapping', ['mobile_meta' => period_label($period)]);
 ?>
 <div class="docket-head">
   <div class="eyebrow">
@@ -96,7 +96,7 @@ ui_header('Entity Mappings', 'mapping.php', ['mobile_meta' => period_label($peri
     </div>
     <div class="docket-actions">
       <?php if ($autoTotal): ?><span class="tag tag-signal"><?= $autoTotal ?> auto</span><?php endif; ?>
-      <a class="btn btn-outline btn-sm" href="report.php?period=<?= urlencode($period) ?>">Report</a>
+      <a class="btn btn-outline btn-sm" href="report?period=<?= urlencode($period) ?>">Report</a>
     </div>
   </div>
 </div>
@@ -112,8 +112,8 @@ ui_header('Entity Mappings', 'mapping.php', ['mobile_meta' => period_label($peri
   <div class="toolbar-group">
     <span class="control-label">Instance</span>
     <div class="segmented">
-      <a href="mapping.php?site=site1&period=<?= urlencode($period) ?>" class="<?= $site === 'site1' ? 'active' : '' ?>">TOP</a>
-      <a href="mapping.php?site=site2&period=<?= urlencode($period) ?>" class="<?= $site === 'site2' ? 'active' : '' ?>">MMP / SLP</a>
+      <a href="mapping?site=site1&period=<?= urlencode($period) ?>" class="<?= $site === 'site1' ? 'active' : '' ?>">TOP</a>
+      <a href="mapping?site=site2&period=<?= urlencode($period) ?>" class="<?= $site === 'site2' ? 'active' : '' ?>">MMP / SLP</a>
     </div>
   </div>
   <form method="get" class="toolbar-group">
@@ -125,7 +125,7 @@ ui_header('Entity Mappings', 'mapping.php', ['mobile_meta' => period_label($peri
     <button type="submit" class="btn btn-outline btn-sm">Load</button>
   </form>
   <span class="spacer"></span>
-  <a class="btn btn-outline btn-sm" href="input.php?period=<?= urlencode($period) ?>">Monthly input</a>
+  <a class="btn btn-outline btn-sm" href="input?period=<?= urlencode($period) ?>">Monthly input</a>
 </div>
 
 <p class="scroll-hint mobile-only">Tables scroll sideways for all columns &rarr;</p>
@@ -241,7 +241,7 @@ ui_header('Entity Mappings', 'mapping.php', ['mobile_meta' => period_label($peri
     </div>
     <div class="row">
       <button type="submit" class="btn btn-signal">Save mappings</button>
-      <a class="btn btn-outline" href="input.php?period=<?= urlencode($period) ?>">Monthly input</a>
+      <a class="btn btn-outline" href="input?period=<?= urlencode($period) ?>">Monthly input</a>
     </div>
   </div>
 </form>
