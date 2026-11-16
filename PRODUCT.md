@@ -32,6 +32,7 @@ It is not a generic CRM dashboard. It is the bridge between the CRM's order data
 - API-derived: sales orders, purchase orders, customer/supplier names, order amounts, dates.
 - API-backed with manual fallback: petty cash from `CPettyCash`, split by entity; the user can override.
 - Manual: sales target, bank balances, five inventory buckets, salaries/THR, bank costs, electricity, production rolls, adjustments, account/supplier entity mapping.
+- Managed custom fields: per-entity money fields with a `cost` or `info` role; defined once and reused monthly. Cost fields affect totals; info fields do not.
 - `CPettyCash` labels `MMP`/`SLP` map to CV MMP/CV SAE; unmapped labels warn instead of being assigned silently.
 - Month close freezes API sales/purchases and resolved petty cash in `monthly_actuals`; reopening returns to live data.
 - Entity mapping cannot be read from a structured CRM field; names and suffixes are fallbacks only.

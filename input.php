@@ -73,7 +73,7 @@ foreach ($defs as $metric => $def) {
             $bankTotal += $value;
         } elseif (str_starts_with($metric, 'inv_')) {
             $inventoryTotal += $value;
-        } elseif (str_starts_with($metric, 'cost_')) {
+        } elseif (is_cost_metric($metric, $def)) {
             $costTotal += $metric === 'cost_petty_cash'
                 ? (float)($pettyResolved[$scope] ?? 0)
                 : $value;
@@ -153,7 +153,10 @@ ui_header('Monthly Input', 'input', ['mobile_meta' => period_label($period)]);
     </form>
     <a class="btn btn-outline btn-sm" href="input?period=<?= urlencode($next) ?>"><?= e(date('M Y', strtotime($next . '-01'))) ?> &rarr;</a>
   </div>
-  <a class="btn btn-outline btn-sm" href="report?period=<?= urlencode($period) ?>">View report</a>
+  <div class="row">
+    <a class="btn btn-outline btn-sm" href="fields">Manage fields</a>
+    <a class="btn btn-outline btn-sm" href="report?period=<?= urlencode($period) ?>">View report</a>
+  </div>
 </div>
 
 <form method="post" id="entry-form">
@@ -194,6 +197,9 @@ ui_header('Monthly Input', 'input', ['mobile_meta' => period_label($period)]);
                         <?= e($def['label']) ?>
                         <?php if ($metric === 'cost_petty_cash'): ?>
                           <span class="tag <?= e($pettySourceClass) ?> ml-6"><?= e($pettySource) ?></span>
+                        <?php endif; ?>
+                        <?php if (!empty($def['custom'])): ?>
+                          <span class="tag tag-muted ml-6">Custom</span>
                         <?php endif; ?>
                       </strong>
                       <span class="unit"><?= e($def['unit'] === 'IDR' ? 'IDR' : $def['unit']) ?></span>

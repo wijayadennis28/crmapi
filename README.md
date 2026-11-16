@@ -50,11 +50,21 @@ php -S 127.0.0.1:8000 router.php
    - production rolls (bubble and lakban)
    - optional sales/purchase adjustments, with a note
 
-3. **Report** (`report.php`) — review the combined figures. “Close month” freezes the API sales and purchases in `monthly_actuals`; reopen if something changes.
+3. **Report** (`report.php`) — review the combined figures. “Close month” freezes the API sales and purchases and the resolved petty cash in `monthly_actuals`; reopen if something changes.
+
+## Custom fields
+
+`/fields` lets you define a manual field once. It then appears in every monthly form for PT TOP, CV MMP, and CV SAE.
+
+- Per entity, money only.
+- Role `cost` adds the field to total costs and Laba/Rugi.
+- Role `info` displays in a separate “Custom data” report section and does not affect totals.
+- Required custom fields join the close validation.
+- Deactivate a field to hide it from new months; historical reports keep the values.
 
 ## URLs
 
-Public routes: `/`, `/input`, `/mapping`, `/report`, `/login`, `/export`.
+Public routes: `/`, `/input`, `/mapping`, `/report`, `/fields`, `/login`, `/export`.
 
 - `.htaccess` rewrites clean routes to the PHP files and 301s direct `.php` URLs to the clean form.
 - `router.php` does the same for local development.

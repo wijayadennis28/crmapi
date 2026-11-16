@@ -13,8 +13,8 @@ RewriteCond %{THE_REQUEST} \s(.+?)\.php[\s?] [NC]
 RewriteRule ^ %1 [R=301,L,NE,QSA]
 
 # 3. /input/ -> /input, path-agnostic.
-RewriteCond %{REQUEST_URI} ^(.*)/(index|input|mapping|report|login|export)/$ [NC]
+RewriteCond %{REQUEST_URI} ^(.*)/(index|input|mapping|report|fields|login|export)/$ [NC]
 RewriteRule ^ %1/%2 [R=301,L,NE,QSA]
 
 # 4. Clean public routes -> internal PHP.
-RewriteRule ^(index|input|mapping|report|login|export)$ $1.php [L,QSA]
+RewriteRule ^(index|input|mapping|report|fields|login|export)$ $1.php [L,QSA]

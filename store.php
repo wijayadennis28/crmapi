@@ -93,12 +93,25 @@ CREATE TABLE IF NOT EXISTS settings (
     key   TEXT PRIMARY KEY,
     value TEXT
 );
+
+CREATE TABLE IF NOT EXISTS custom_fields (
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    label          TEXT NOT NULL,
+    group_name     TEXT NOT NULL,
+    role           TEXT NOT NULL DEFAULT 'cost',
+    required       INTEGER NOT NULL DEFAULT 0,
+    allow_negative INTEGER NOT NULL DEFAULT 0,
+    sort_order     INTEGER NOT NULL DEFAULT 0,
+    active         INTEGER NOT NULL DEFAULT 1,
+    created_at     TEXT NOT NULL,
+    updated_at     TEXT NOT NULL
+);
 SQL);
 }
 
-function metric_defs(): array
+function metric_defs(bool $activeOnly = true): array
 {
-    return [
+    $defs = [
         'sales_target' => [
             'label' => 'Sales target', 'group' => 'Sales', 'scopes' => ['ALL'],
             'allow_negative' => false, 'required' => true, 'unit' => 'IDR',
@@ -165,6 +178,112 @@ function metric_defs(): array
             'allow_negative' => true, 'required' => false, 'unit' => 'IDR',
         ],
     ];
+
+    foreach (custom_field_defs($activeOnly) as $row) {
+        $defs['custom_' . $row['id']] = custom_metric_def($row);
+    }
+
+    return $defs;
+}
+
+function custom_metric_def(array $row): array
+{
+    return [
+        'label' => $row['label'],
+        'group' => $row['group_name'],
+        'scopes' => ['TOP', 'MMP', 'SAE'],
+        'allow_negative' => (bool)$row['allow_negative'],
+        'required' => (bool)$row['required'],
+        'unit' => 'IDR',
+        'role' => $row['role'],
+        'source' => 'manual',
+        'custom' => true,
+        'sort_order' => (int)$row['sort_order'],
+    ];
+}
+
+function is_cost_metric(string $metric, array $def): bool
+{
+    return ($def['role'] ?? '') === 'cost' || str_starts_with($metric, 'cost_');
+}
+
+function custom_field_defs(bool $activeOnly = true): array
+{
+    $sql = 'SELECT * FROM custom_fields';
+    if ($activeOnly) {
+        $sql .= ' WHERE active = 1';
+    }
+    $sql .= ' ORDER BY sort_order, id';
+    return db()->query($sql)->fetchAll();
+}
+
+function custom_field_by_id(int $id): ?array
+{
+    $stmt = db()->prepare('SELECT * FROM custom_fields WHERE id = ?');
+    $stmt->execute([$id]);
+    $row = $stmt->fetch();
+    return $row === false ? null : $row;
+}
+
+function save_custom_field(array $data, ?int $id = null): array
+{
+    $label = trim((string)($data['label'] ?? ''));
+    $group = trim((string)($data['group_name'] ?? ''));
+    $role = ($data['role'] ?? 'cost') === 'info' ? 'info' : 'cost';
+    $required = !empty($data['required']) ? 1 : 0;
+    $allowNegative = !empty($data['allow_negative']) ? 1 : 0;
+    $sort = max(0, (int)($data['sort_order'] ?? 0));
+    $active = !empty($data['active']) ? 1 : 0;
+
+    $errors = [];
+    if ($label === '') {
+        $errors[] = 'Label is required.';
+    }
+    if ($group === '') {
+        $errors[] = 'Group is required.';
+    }
+    if ($id !== null && custom_field_by_id($id) === null) {
+        $errors[] = 'Field not found.';
+    }
+    if ($errors) {
+        return $errors;
+    }
+
+    if ($id !== null) {
+        $stmt = db()->prepare('UPDATE custom_fields SET label = ?, group_name = ?, role = ?, required = ?, allow_negative = ?, sort_order = ?, active = ?, updated_at = ? WHERE id = ?');
+        $stmt->execute([$label, $group, $role, $required, $allowNegative, $sort, $active, now(), $id]);
+    } else {
+        $stmt = db()->prepare('INSERT INTO custom_fields (label, group_name, role, required, allow_negative, sort_order, active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
+        $stmt->execute([$label, $group, $role, $required, $allowNegative, $sort, $active, now(), now()]);
+    }
+
+    return [];
+}
+
+function set_custom_field_active(int $id, bool $active): void
+{
+    $stmt = db()->prepare('UPDATE custom_fields SET active = ?, updated_at = ? WHERE id = ?');
+    $stmt->execute([$active ? 1 : 0, now(), $id]);
+}
+
+function report_metric_defs(string $period): array
+{
+    $defs = metric_defs();
+
+    $stmt = db()->prepare("SELECT DISTINCT metric FROM monthly_inputs WHERE period = ? AND metric LIKE 'custom_%'");
+    $stmt->execute([$period]);
+    foreach ($stmt->fetchAll(PDO::FETCH_COLUMN) as $metric) {
+        if (isset($defs[$metric])) {
+            continue;
+        }
+        $id = (int)substr($metric, 7);
+        $row = $id > 0 ? custom_field_by_id($id) : null;
+        if ($row !== null) {
+            $defs[$metric] = custom_metric_def($row);
+        }
+    }
+
+    return $defs;
 }
 
 function valid_period(string $period): bool

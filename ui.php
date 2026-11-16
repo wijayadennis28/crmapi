@@ -18,6 +18,7 @@ function ui_header(string $title, string $active = '', array $options = []): voi
         'input'   => ['02', 'Monthly Input'],
         'mapping' => ['03', 'Mappings'],
         'report'  => ['04', 'Report'],
+        'fields'  => ['05', 'Fields'],
     ];
     $user       = auth_user();
     $head       = $options['head'] ?? '';

@@ -166,6 +166,7 @@ $actuals = $closed ? get_actuals($period) : [];
 $pettyResolved = petty_cash_resolved($inputs, $pettyCash);
 $pettySource   = petty_cash_source($inputs, $pettyCash);
 $pettyActuals  = [];
+$reportDefs    = report_metric_defs($period);
 $autoMapped = 0;
 
 if ($actuals) {
@@ -214,8 +215,8 @@ foreach (ENTITIES as $entity => $label) {
     $purchaseAdjustment[$entity] = (float)($inputs[$entity]['purchase_adjustment'] ?? 0);
     $bank[$entity] = (float)($inputs[$entity]['bank_balance'] ?? 0);
 
-    foreach (array_keys(metric_defs()) as $metric) {
-        if (str_starts_with($metric, 'cost_')) {
+    foreach ($reportDefs as $metric => $def) {
+        if (is_cost_metric($metric, $def)) {
             $value = (float)($inputs[$entity][$metric] ?? 0);
             if ($metric === 'cost_petty_cash') {
                 $value = $closed
@@ -245,6 +246,14 @@ foreach ($costs as $metric => $byEntity) {
     $costTotals[$metric] = array_sum($byEntity);
     $totalCosts += $costTotals[$metric];
 }
+
+$customInfo = [];
+foreach ($reportDefs as $metric => $def) {
+    if (($def['role'] ?? '') === 'info') {
+        $customInfo[$metric] = $def;
+    }
+}
+$statusSection = $customInfo ? 9 : 8;
 
 $productionBubble = (float)($inputs['ALL']['production_rolls_bubble'] ?? 0);
 $productionLakban = (float)($inputs['ALL']['production_rolls_lakban'] ?? 0);
@@ -498,11 +507,15 @@ ui_header('Monthly Report', 'report', ['mobile_meta' => period_label($period)]);
       <thead><tr><th>Cost</th><?php foreach (ENTITIES as $label): ?><th class="num"><?= e($label) ?></th><?php endforeach; ?><th class="num">Total</th></tr></thead>
       <tbody>
       <?php foreach ($costs as $metric => $byEntity): ?>
+        <?php $costDef = $reportDefs[$metric] ?? ['label' => $metric]; ?>
         <tr>
           <td>
-            <?= e(metric_defs()[$metric]['label']) ?>
+            <?= e($costDef['label']) ?>
             <?php if ($metric === 'cost_petty_cash'): ?>
               <span class="tag <?= e($pettyTagClass) ?> ml-6"><?= e($pettyTag) ?></span>
+            <?php endif; ?>
+            <?php if (!empty($costDef['custom'])): ?>
+              <span class="tag tag-muted ml-6">Custom</span>
             <?php endif; ?>
           </td>
           <?php foreach (ENTITIES as $entity => $label): ?><td class="num"><?= e(format_idr($byEntity[$entity], 2)) ?></td><?php endforeach; ?>
@@ -538,6 +551,31 @@ ui_header('Monthly Report', 'report', ['mobile_meta' => period_label($period)]);
   </div>
 </div>
 
+<?php if ($customInfo): ?>
+<div class="sheet">
+  <div class="sheet-head">
+    <div class="sheet-title-wrap"><span class="sheet-no">08</span><span class="sheet-title">Custom data</span></div>
+    <span class="sheet-meta">Info only / not in totals</span>
+  </div>
+  <div class="table-wrap">
+    <table class="data">
+      <thead><tr><th>Field</th><?php foreach (ENTITIES as $label): ?><th class="num"><?= e($label) ?></th><?php endforeach; ?></tr></thead>
+      <tbody>
+      <?php foreach ($customInfo as $metric => $def): ?>
+        <tr>
+          <td><?= e($def['label']) ?></td>
+          <?php foreach (ENTITIES as $entity => $label): ?><td class="num"><?= e(format_idr((float)($inputs[$entity][$metric] ?? 0), 2)) ?></td><?php endforeach; ?>
+        </tr>
+      <?php endforeach; ?>
+      </tbody>
+    </table>
+  </div>
+  <div class="sheet-body tight">
+    <p class="small muted">Info fields are shown for context and are not included in total costs or Laba/Rugi.</p>
+  </div>
+</div>
+<?php endif; ?>
+
 <?php if (!$closed && $missing): ?>
 <div class="sheet">
   <div class="sheet-head">
@@ -554,7 +592,7 @@ ui_header('Monthly Report', 'report', ['mobile_meta' => period_label($period)]);
 
 <div class="sheet no-print">
   <div class="sheet-head">
-    <div class="sheet-title-wrap"><span class="sheet-no">08</span><span class="sheet-title">Month status</span></div>
+    <div class="sheet-title-wrap"><span class="sheet-no"><?= sprintf('%02d', $statusSection) ?></span><span class="sheet-title">Month status</span></div>
     <span class="sheet-meta"><?= $closed ? 'Closed' : 'Open' ?></span>
   </div>
   <div class="sheet-body">

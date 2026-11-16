@@ -106,4 +106,70 @@ check('petty cash filled by API', missing_inputs($apiPeriod, [
     'petty_cash' => ['present' => ['TOP' => true, 'MMP' => true, 'SAE' => true]],
 ]) === []);
 
+// ── Custom fields ───────────────────────────────────────────
+$errors = save_custom_field([
+    'label' => 'Other cost',
+    'group_name' => 'Other costs',
+    'role' => 'cost',
+    'required' => '1',
+    'allow_negative' => '0',
+    'sort_order' => '5',
+    'active' => '1',
+]);
+check('custom field saved', $errors === []);
+
+$byLabel = array_column(custom_field_defs(false), null, 'label');
+$costField = $byLabel['Other cost'];
+$costKey = 'custom_' . $costField['id'];
+$defs = metric_defs();
+check('custom field appears in metrics', isset($defs[$costKey]));
+check('custom field is per entity', $defs[$costKey]['scopes'] === ['TOP', 'MMP', 'SAE']);
+check('custom cost is a cost metric', is_cost_metric($costKey, $defs[$costKey]) === true);
+check('custom cost unit is IDR', $defs[$costKey]['unit'] === 'IDR');
+
+$customPeriod = '2026-06';
+$customValues = [];
+foreach (metric_defs() as $metric => $def) {
+    foreach ($def['scopes'] as $scope) {
+        $customValues[$scope][$metric] = '1000';
+    }
+}
+$errors = save_inputs($customPeriod, $customValues, 'custom test', 'tester');
+check('required custom field saves with all inputs', $errors === []);
+check('required custom field is not missing', missing_inputs($customPeriod) === []);
+
+$errors = save_custom_field([
+    'label' => 'Headcount',
+    'group_name' => 'Notes',
+    'role' => 'info',
+    'required' => '0',
+    'allow_negative' => '0',
+    'sort_order' => '10',
+    'active' => '1',
+]);
+check('info field saved', $errors === []);
+$byLabel = array_column(custom_field_defs(false), null, 'label');
+$infoField = $byLabel['Headcount'];
+$infoKey = 'custom_' . $infoField['id'];
+$defs = metric_defs();
+check('info field is not a cost', is_cost_metric($infoKey, $defs[$infoKey]) === false);
+save_inputs($customPeriod, ['TOP' => [$infoKey => '50']], '', 'tester');
+set_custom_field_active((int)$infoField['id'], false);
+check('inactive field hidden from active metrics', !isset(metric_defs()[$infoKey]));
+check('inactive field stays in history', isset(metric_defs(false)[$infoKey]));
+check('inactive field stays in report defs', isset(report_metric_defs($customPeriod)[$infoKey]));
+
+$errors = save_custom_field([
+    'label' => 'Other operating cost',
+    'group_name' => 'Other costs',
+    'role' => 'cost',
+    'required' => '1',
+    'allow_negative' => '0',
+    'sort_order' => '5',
+    'active' => '1',
+], (int)$costField['id']);
+check('custom field rename saves', $errors === []);
+check('custom field keeps its key', isset(metric_defs()[$costKey]));
+check('custom field label updated', metric_defs()[$costKey]['label'] === 'Other operating cost');
+
 exit($failed === 0 ? 0 : 1);

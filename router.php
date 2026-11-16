@@ -51,7 +51,7 @@ if (str_ends_with($path, '.php')) {
 }
 
 // App routes without trailing slash.
-$routes = ['index', 'input', 'mapping', 'report', 'login', 'export'];
+$routes = ['index', 'input', 'mapping', 'report', 'fields', 'login', 'export'];
 if ($path !== '/' && str_ends_with($path, '/')) {
     $clean = rtrim($path, '/');
     if (in_array(trim($clean, '/'), $routes, true)) {

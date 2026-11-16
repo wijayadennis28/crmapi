@@ -52,6 +52,7 @@ check "login page" "/login" 200
 check "input when signed out" "/input" 302
 check "mapping when signed out" "/mapping" 302
 check "report when signed out" "/report" 302
+check "fields when signed out" "/fields" 302
 check "export route" "/export" 400
 
 # Clean URL redirects
@@ -59,6 +60,7 @@ check "direct .php" "/input.php" 301
 expect_location "direct .php keeps query" "/input.php?period=2026-03" "$BASE/input?period=2026-03"
 expect_location "trailing slash" "/input/" "$BASE/input"
 expect_location "index .php" "/index.php" "$BASE/index"
+expect_location "fields .php" "/fields.php" "$BASE/fields"
 
 # Private files
 check "config.php" "/config.php" 404

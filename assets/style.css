@@ -244,6 +244,10 @@ a:hover { text-decoration-color: var(--signal-deep); }
 .btn-sm { height: 28px; padding: 0 9px; font-size: 9.5px; }
 
 .field { display: flex; flex-direction: column; gap: 5px; }
+.form-grid { display: grid; grid-template-columns: 2fr 1.4fr 1fr 1fr; gap: 12px; align-items: end; }
+.check-row { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 14px; }
+.check { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: var(--muted); }
+.check input { width: 15px; height: 15px; accent-color: var(--signal); }
 .field > label,
 .control-label {
     font-size: 9.5px; font-weight: 700; letter-spacing: .1em;
@@ -770,6 +774,7 @@ a:hover { text-decoration-color: var(--signal-deep); }
     .docket-actions { width: 100%; }
     .toolbar .input { width: 100%; }
     .toolbar .field { flex: 1 1 140px; }
+    .form-grid { grid-template-columns: 1fr; }
     .segmented { width: 100%; }
     .segmented a, .segmented button { flex: 1; padding: 0 6px; font-size: 9px; }
     .matrix .row-label { min-width: 140px; max-width: 140px; }
