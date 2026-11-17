@@ -224,7 +224,7 @@ const counts  = <?= json_encode($chartCounts) ?>;
 const amounts = <?= json_encode($chartAmounts) ?>;
 
 if (window.Chart) {
-  Chart.defaults.font.family = "'Archivo', 'Helvetica Neue', Arial, sans-serif";
+  Chart.defaults.font.family = "'Public Sans', 'Archivo', 'Helvetica Neue', Arial, sans-serif";
   Chart.defaults.font.size = 10;
   Chart.defaults.color = '#62665f';
 
@@ -239,8 +239,8 @@ if (window.Chart) {
       legend: { display: false },
       tooltip: {
         backgroundColor: '#141414',
-        titleFont: { family: "'Archivo', sans-serif", size: 11, weight: '600' },
-        bodyFont: { family: "'Archivo', sans-serif", size: 11 },
+        titleFont: { family: "'Public Sans', sans-serif", size: 11, weight: '600' },
+        bodyFont: { family: "'Public Sans', sans-serif", size: 11 },
         padding: 10,
         displayColors: false,
         cornerRadius: 1

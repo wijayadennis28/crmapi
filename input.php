@@ -147,7 +147,7 @@ ui_header('Monthly Input', 'input', ['mobile_meta' => period_label($period)]);
   <div class="period-nav">
     <a class="btn btn-outline btn-sm" href="input?period=<?= urlencode($previous) ?>">&larr; <?= e(date('M Y', strtotime($previous . '-01'))) ?></a>
     <form method="get" class="row">
-      <label class="sr-only" for="period">Month</label>
+      <label class="period-label" for="period">Month</label>
       <input class="input" type="month" id="period" name="period" value="<?= e($period) ?>" required>
       <button type="submit" class="btn btn-outline btn-sm">Load</button>
     </form>
@@ -174,6 +174,7 @@ ui_header('Monthly Input', 'input', ['mobile_meta' => period_label($period)]);
           </div>
           <span class="sheet-meta"><?= e(period_label($period)) ?> &middot; <?= $closed ? 'locked' : 'draft' ?></span>
         </div>
+        <p class="sheet-note"><strong>Group</strong> = one figure for the whole group. Whole numbers only; blank is not zero.</p>
         <p class="scroll-hint mobile-only">Scroll sideways for CV MMP / CV SAE &rarr;</p>
         <div class="matrix-scroll">
           <table class="matrix">
@@ -234,35 +235,42 @@ ui_header('Monthly Input', 'input', ['mobile_meta' => period_label($period)]);
                           $previewText = '';
                           if ($value !== null) {
                               $previewText = $metric === 'cost_petty_cash'
-                                  ? 'Override: Rp ' . format_idr((float)$value, 2)
+                                  ? 'Override: Rp ' . format_idr((float)$value, 0)
                                   : '';
                           } elseif ($apiPreview !== '') {
                               $previewText = $apiPreview;
                           }
-                          $ariaLabel = $def['label'] . ' — ' . scope_label($scope);
+                          $ariaLabel = $def['label'] . ' — ' . scope_label($scope)
+                              . ($unit === 'rolls' ? ' — rolls' : ' — IDR');
                           if ($apiPreview !== '') {
                               $ariaLabel .= ' — ' . $apiPreview;
                           }
                         ?>
                         <td class="cell">
                           <div class="cell-wrap">
-                            <input
-                              class="cell-input"
-                              type="number"
-                              step="<?= $unit === 'rolls' ? '1' : '0.01' ?>"
-                              inputmode="decimal"
-                              autocomplete="off"
-                              name="v[<?= e($scope) ?>][<?= e($metric) ?>]"
-                              value="<?= $value === null ? '' : e(number_format($value, 2, '.', '')) ?>"
-                              data-unit="<?= e($unit) ?>"
-                              data-required="<?= $required ? '1' : '0' ?>"
-                              data-group="<?= e($groupKey) ?>"
-                              data-touched="0"
-                              data-api-present="<?= $apiPresent ? '1' : '0' ?>"
-                              data-api-amount="<?= $apiPresent ? e(number_format($apiAmount, 2, '.', '')) : '' ?>"
-                              data-api-preview="<?= e($apiPreview) ?>"
-                              aria-label="<?= e($ariaLabel) ?>"
-                              <?= $closed ? 'disabled' : '' ?>>
+                            <div class="cell-field">
+                              <?php if ($unit !== 'rolls'): ?>
+                                <span class="cell-unit" aria-hidden="true">Rp</span>
+                              <?php endif; ?>
+                              <input
+                                class="cell-input"
+                                type="number"
+                                step="1"
+                                inputmode="numeric"
+                                autocomplete="off"
+                                placeholder="—"
+                                name="v[<?= e($scope) ?>][<?= e($metric) ?>]"
+                                value="<?= $value === null ? '' : e(number_format($value, 0, '.', '')) ?>"
+                                data-unit="<?= e($unit) ?>"
+                                data-required="<?= $required ? '1' : '0' ?>"
+                                data-group="<?= e($groupKey) ?>"
+                                data-touched="0"
+                                data-api-present="<?= $apiPresent ? '1' : '0' ?>"
+                                data-api-amount="<?= $apiPresent ? e(number_format($apiAmount, 2, '.', '')) : '' ?>"
+                                data-api-preview="<?= e($apiPreview) ?>"
+                                aria-label="<?= e($ariaLabel) ?>"
+                                <?= $closed ? 'disabled' : '' ?>>
+                            </div>
                             <span class="cell-preview" aria-hidden="true"><?= e($previewText) ?></span>
                           </div>
                         </td>

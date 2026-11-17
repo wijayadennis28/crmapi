@@ -28,7 +28,9 @@
     --rail-text:    #f4f4ef;
     --rail-muted:   #a8aca4;
     --radius:       2px;
-    --font:         'Archivo', 'Helvetica Neue', Arial, sans-serif;
+    --font-display: 'Bricolage Grotesque', 'Archivo', 'Helvetica Neue', Arial, sans-serif;
+    --font-body:    'Public Sans', 'Archivo', 'Helvetica Neue', Arial, sans-serif;
+    --font-record:  ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
     --rail-w:       224px;
     --page-max:     1400px;
 }
@@ -38,13 +40,25 @@
 html { -webkit-text-size-adjust: 100%; }
 
 body {
-    font-family: var(--font);
+    font-family: var(--font-body);
     font-size: 14px;
     line-height: 1.45;
     background: var(--ground);
     color: var(--ink);
     min-height: 100vh;
     font-variant-numeric: tabular-nums;
+}
+
+/* DigitalNest type roles: display for moments, body for work, record for labels. */
+.brand-mark, .login-mark, .docket-title, .login-form h1,
+.figure-number, .completion-number, .target-pct {
+    font-family: var(--font-display);
+}
+
+.eyebrow, .doc-no, .rail-num, .brand-sub, .login-brand-sub,
+.sheet-no, .sheet-title, .stamp, .tag, .matrix thead th,
+.chart-title, .figure-kicker, .completion-label, .period-label, .cell-preview {
+    font-family: var(--font-record);
 }
 
 ::selection { background: var(--signal); color: var(--paper); }
@@ -256,13 +270,13 @@ a:hover { text-decoration-color: var(--signal-deep); }
 
 .input, .select, .textarea {
     width: 100%; height: 36px; padding: 0 10px;
-    border: 1px solid var(--rule); border-radius: var(--radius);
+    border: 1px solid var(--muted-2); border-radius: var(--radius);
     background: var(--surface); color: var(--ink);
-    font-family: inherit; font-size: 13px;
+    font-family: inherit; font-size: 14px; caret-color: var(--signal-deep);
     transition: border-color .15s, box-shadow .15s, background .15s;
 }
 .textarea { height: auto; padding: 9px 10px; resize: vertical; line-height: 1.5; }
-.input:hover, .select:hover, .textarea:hover { border-color: var(--muted-2); }
+.input:hover, .select:hover, .textarea:hover { border-color: var(--muted); }
 .input:focus, .select:focus, .textarea:focus {
     outline: none; border-color: var(--ink);
     box-shadow: 0 0 0 2px var(--signal);
@@ -428,6 +442,13 @@ a:hover { text-decoration-color: var(--signal-deep); }
 .sheet.flush { margin-bottom: 0; }
 .sheet-body.tight { padding-top: 8px; padding-bottom: 8px; }
 .sheet-actions { padding: 10px 14px; border-top: 1px solid var(--rule); display: flex; gap: 8px; flex-wrap: wrap; }
+.sheet-note {
+    padding: 7px 14px;
+    border-bottom: 1px solid var(--rule);
+    background: var(--surface-hover);
+    font-size: 11px; color: var(--muted);
+}
+.sheet-note strong { color: var(--ink); font-weight: 600; }
 
 /* ── Tables ────────────────────────────────────────────────── */
 
@@ -495,7 +516,11 @@ a:hover { text-decoration-color: var(--signal-deep); }
     text-transform: uppercase;
     padding: 0 8px;
 }
-.period-nav .input { width: 140px; height: 32px; }
+.period-label {
+    font-size: 9px; font-weight: 700; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--muted);
+}
+.period-nav .input { width: 168px; height: 32px; }
 
 .entry-layout {
     display: grid; grid-template-columns: minmax(0, 1fr) 292px;
@@ -554,36 +579,51 @@ a:hover { text-decoration-color: var(--signal-deep); }
     min-width: 240px; max-width: 300px;
     border-right: 1px solid var(--rule);
 }
+.matrix tbody tr:hover td,
 .matrix tbody tr:hover .row-label { background: var(--row-hover); }
 .row-label strong { display: block; font-weight: 600; }
 .row-label .unit { display: block; margin-top: 2px; font-size: 9px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
 
-.matrix td.cell { width: 150px; min-width: 130px; padding: 4px 6px; }
+.matrix td.cell { width: 158px; min-width: 140px; padding: 4px 6px; }
 .cell-wrap { display: flex; flex-direction: column; gap: 1px; }
+.cell-field {
+    display: flex; align-items: center;
+    border: 1px solid var(--muted-2); border-radius: var(--radius);
+    background: var(--surface);
+    transition: border-color .12s, background .12s, box-shadow .12s;
+}
+.cell-field:hover { border-color: var(--muted); background: var(--surface-hover); }
+.cell-field:focus-within {
+    border-color: var(--ink);
+    background: var(--signal-soft);
+    box-shadow: 0 0 0 2px var(--signal);
+}
+.cell-field:has(.cell-input:disabled) { background: var(--ground); border-color: var(--rule); }
+.cell-unit {
+    padding-left: 6px;
+    font-family: var(--font-record);
+    font-size: 8.5px; letter-spacing: .02em; color: var(--muted);
+}
 .cell-input {
-    width: 100%; height: 32px; padding: 0 7px;
-    border: 1px solid transparent; border-bottom-color: var(--rule);
-    border-radius: 1px; background: transparent;
+    width: 100%; height: 30px; padding: 0 7px;
+    border: 0; background: transparent;
     color: var(--ink); font-family: inherit; font-size: 12.5px;
     font-variant-numeric: tabular-nums; text-align: right;
+    caret-color: var(--signal-deep);
 }
-.cell-input:hover { border-color: var(--rule); background: #fdfdfb; }
+.cell-input::placeholder { color: var(--muted-2); }
 .cell-input::-webkit-outer-spin-button,
 .cell-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .cell-input { -moz-appearance: textfield; appearance: textfield; }
-.cell-input:focus {
-    outline: none; border-color: var(--ink);
-    background: var(--signal-soft);
-    box-shadow: inset 0 -2px 0 var(--signal-deep);
-}
-.cell-input:disabled { color: var(--muted); background: transparent; }
-.cell-input.is-missing { border-left: 2px solid var(--danger); }
+.cell-input:focus { outline: none; }
+.cell-input:disabled { color: var(--muted); }
+.cell-input.is-missing { box-shadow: inset 2px 0 0 var(--danger); }
 .cell-preview {
     min-height: 13px;
-    font-size: 9.5px; color: var(--muted);
+    font-size: 9px; color: var(--muted);
     text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.cell-input.is-missing + .cell-preview { color: var(--danger); }
+.cell-field:has(.cell-input.is-missing) + .cell-preview { color: var(--danger); }
 .matrix td.na { color: #c3c7bf; text-align: center; font-size: 12px; }
 
 .sticky-actions {
@@ -679,7 +719,7 @@ a:hover { text-decoration-color: var(--signal-deep); }
 }
 .login-mark { font-size: 72px; font-weight: 800; line-height: .85; letter-spacing: -.055em; }
 .login-brand-sub {
-    margin-top: 12px; max-width: 18ch;
+    margin-top: 12px; max-width: 30ch;
     font-size: 10px; font-weight: 600; line-height: 1.5;
     letter-spacing: .16em; text-transform: uppercase; color: var(--rail-muted);
 }
@@ -704,6 +744,34 @@ a:hover { text-decoration-color: var(--signal-deep); }
 .progress.is-active span { animation: slide 1s linear infinite; }
 @keyframes slide { to { transform: translateX(430%); } }
 
+/* ── Page navigation motion ────────────────────────────────── */
+/* Back-office continuity, not choreography: a fast crossfade and the red
+   active rail block moving to the page you opened. */
+@media (prefers-reduced-motion: no-preference) {
+    @view-transition { navigation: auto; }
+
+    .rail-link.active { view-transition-name: nav-active; }
+
+    ::view-transition-old(root) { animation: vt-fade-out .12s ease-out both; }
+    ::view-transition-new(root) { animation: vt-fade-in .22s cubic-bezier(.16, 1, .3, 1) both; }
+    ::view-transition-group(nav-active),
+    ::view-transition-old(nav-active),
+    ::view-transition-new(nav-active) {
+        animation-duration: .32s;
+        animation-timing-function: cubic-bezier(.16, 1, .3, 1);
+    }
+}
+
+@keyframes vt-fade-out { to { opacity: 0; } }
+@keyframes vt-fade-in { from { opacity: 0; } }
+
+/* shortcut: cross-document view transitions are Chromium/Safari; other browsers get a plain fade. */
+@supports not (view-transition-name: none) {
+    @media (prefers-reduced-motion: no-preference) {
+        .page-inner { animation: vt-fade-in .2s ease-out both; }
+    }
+}
+
 @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .001ms !important; scroll-behavior: auto !important; }
 }
@@ -717,6 +785,7 @@ a:hover { text-decoration-color: var(--signal-deep); }
 
 @media (max-width: 900px) {
     .mobile-only { display: block; }
+    .rail-link.active { view-transition-name: none; }
     .rail {
         transform: translateX(-100%);
         transition: transform .18s ease;
@@ -764,6 +833,8 @@ a:hover { text-decoration-color: var(--signal-deep); }
 
 @media (max-width: 620px) {
     .page { padding: 16px 12px 56px; }
+    .input, .select, .textarea { min-height: 44px; font-size: 16px; }
+    .btn, .segmented a, .segmented button { min-height: 44px; }
     .data { font-size: 11.5px; }
     .data thead th, .data tbody td { padding: 7px 8px; }
     .figures { grid-template-columns: 1fr; }
@@ -778,9 +849,10 @@ a:hover { text-decoration-color: var(--signal-deep); }
     .segmented { width: 100%; }
     .segmented a, .segmented button { flex: 1; padding: 0 6px; font-size: 9px; }
     .matrix .row-label { min-width: 140px; max-width: 140px; }
-    .matrix td.cell { width: 100px; min-width: 96px; }
+    .matrix td.cell { width: 112px; min-width: 106px; }
     .matrix thead th { padding: 8px 6px; font-size: 8.5px; }
-    .cell-input { padding: 0 5px; font-size: 11.5px; }
+    .cell-unit { display: none; }
+    .cell-input { height: 40px; padding: 0 7px; font-size: 16px; }
     .matrix .group-row th { top: 32px; }
     .sticky-actions { position: static; }
     .route label { padding: 0 6px; font-size: 8px; }

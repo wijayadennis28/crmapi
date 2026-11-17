@@ -37,6 +37,9 @@ check('audit row written', (int)$pdo->query('SELECT COUNT(*) FROM input_history'
 $errors = save_inputs($period, ['ALL' => ['sales_target' => '-5']], '', 'tester');
 check('rejects negative non-adjustment', count($errors) === 1 && str_contains($errors[0], 'cannot be negative'));
 
+$errors = save_inputs($period, ['TOP' => ['bank_balance' => '1000.50']], '', 'tester');
+check('rejects decimal input', count($errors) === 1 && str_contains($errors[0], 'whole number'));
+
 $errors = save_inputs($period, ['TOP' => ['sales_adjustment' => '1100']], '', 'tester');
 check('adjustment requires note', count($errors) === 1 && str_contains($errors[0], 'note is required'));
 

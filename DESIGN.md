@@ -33,7 +33,7 @@ typography:
   headline-lg:
     fontSize: "30px"
   display:
-    fontFamily: "Archivo, Helvetica Neue, Arial, sans-serif"
+    fontFamily: "Bricolage Grotesque, Archivo, Helvetica Neue, Arial, sans-serif"
     fontSize: "28px"
     fontWeight: 700
     lineHeight: 1.05
@@ -49,7 +49,7 @@ typography:
   body-lg:
     fontSize: "18px"
   body:
-    fontFamily: "Archivo, Helvetica Neue, Arial, sans-serif"
+    fontFamily: "Public Sans, Archivo, Helvetica Neue, Arial, sans-serif"
     fontSize: "14px"
     fontWeight: 400
     lineHeight: 1.45
@@ -68,7 +68,7 @@ typography:
   label-md:
     fontSize: "10px"
   label:
-    fontFamily: "Archivo, Helvetica Neue, Arial, sans-serif"
+    fontFamily: "ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, monospace"
     fontSize: "9.5px"
     fontWeight: 700
     letterSpacing: "0.1em"
@@ -157,18 +157,19 @@ A restrained ink-and-paper palette with one high-visibility accent.
 
 ## Typography
 
-**Display Font:** Archivo (fallbacks: Helvetica Neue, Arial, sans-serif)  
-**Body Font:** Archivo
+**Display Font:** Bricolage Grotesque (fallbacks: Archivo, Helvetica Neue, Arial, sans-serif)  
+**Body Font:** Public Sans (fallbacks: Archivo, Helvetica Neue, Arial, sans-serif)  
+**Record Font:** system monospace (ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas)
 
-**Character:** A workhorse grotesque with tight, industrial proportions. It reads as signage and paperwork, not editorial luxury. One family carries the whole system; hierarchy comes from size, weight, case, and spacing.
+**Character:** Bricolage Grotesque carries the wordmark and page titles with a collage-grotesque edge and visible ink traps. Public Sans carries body copy, table content, and figures with a neutral, compact rhythm that stays legible at 12–14px. Small uppercase record labels use the system mono, so metadata reads as stamped record rather than prose. The roles follow the DigitalNest type system; the packing-docket palette and layout stay.
 
 ### Hierarchy
-- **Display** (700, 28px, 1.05, -.025em): page titles only.
-- **Headline** (700, 18–22px): report figures and prominent numbers.
-- **Title** (700, 11px, uppercase, .1em): sheet titles and section labels.
-- **Body** (400, 14px, 1.45): prose, form labels, table content.
-- **Label** (700, 9.5px, uppercase, .1em): metadata, column heads, eyebrows.
-- **Data** (400–700, 12.5px, tabular): every number in a table or input.
+- **Display** (Bricolage 700, 28px, 1.05, -.025em): page titles and wordmark only.
+- **Headline** (Bricolage 700, 18–22px): report figures and prominent numbers.
+- **Title** (Record 600, 9–11px, uppercase, .1em): sheet titles, column heads, tags, and stamps.
+- **Body** (Public Sans 400, 14px, 1.45): prose, form labels, table content.
+- **Label** (Record 700, 9.5px, uppercase, .1em): metadata, eyebrows, rail numbers.
+- **Data** (Public Sans 400–700, 12.5px, tabular): every number in a table or input.
 
 **The Tabular Rule.** All figures use tabular numerals. Align numbers right. Never center a money value.
 
@@ -188,6 +189,16 @@ Flat by default. Depth comes from tonal layering (concrete ground, paper sheet, 
 
 **The Flat-By-Default Rule.** No box-shadow on cards, buttons, inputs, or navigation. A surface earns elevation by being a sheet, not by floating.
 
+## Motion
+
+Motion is continuity, not theater. The back office gets one authored navigation moment: the red active block in the rail slides from the section you left to the section you opened, while the page crossfades quickly. This is a functional signal of where you are, not a page-load sequence.
+
+- Use the native View Transitions API for cross-document navigation; no JavaScript motion library.
+- Keep navigation motion under 350ms: 120ms out, 220ms in, 320ms for the rail block.
+- Disable the rail morph below 900px, where the rail is off-canvas.
+- `prefers-reduced-motion: reduce` opts out; the app then navigates instantly.
+- No scroll reveals, staggered entrances, or decoration loops in the back office.
+
 ## Shapes
 
 - Sheets and tables: square corners.
@@ -206,10 +217,11 @@ Flat by default. Depth comes from tonal layering (concrete ground, paper sheet, 
 - **Focus:** 2px ink outline, 2px offset. Disabled: 40% opacity.
 
 ### Inputs
-- **Style:** 1px rule border, white ground, 2px radius, 36px height.
+- **Style:** 1px muted border, white ground, 2px radius, 36px height. Desktop text 14px; small screens use 16px text and 44px touch targets.
 - **Focus:** ink border plus 2px signal-red ring.
-- **Matrix cells:** transparent with a bottom rule; pale red tint on focus; missing cells get a deep-oxblood left mark only after interaction.
-- **Numbers:** right-aligned, tabular; a small formatted preview sits under each cell.
+- **Matrix cells:** boxed whole-number inputs with a small `Rp` prefix; a dash placeholder marks a blank cell; pale red tint on focus; missing cells get a deep-oxblood left mark only after interaction.
+- **Numbers:** whole rupiah or whole rolls only; decimals are rejected. Right-aligned, tabular; a small mono formatted preview sits under each cell.
+- **Labels:** a visible month label sits beside the period picker; the Group column is explained above the matrix.
 
 ### Tables
 - Header: 9.5px uppercase, muted, 1px ink bottom rule.

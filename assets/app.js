@@ -25,14 +25,13 @@
   // ── Money/roll previews, completion, live totals ───────────
   const inputs = Array.from(document.querySelectorAll('.cell-input'));
   if (inputs.length) {
-    const idr = new Intl.NumberFormat('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    const idr0 = new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 });
+    const idr = new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 });
     const ticks = Array.from(document.querySelectorAll('[data-tick]'));
     const completion = document.querySelector('[data-completion]');
 
     const format = (value, unit) => {
       if (!Number.isFinite(value)) return '';
-      if (unit === 'rolls') return `${idr0.format(value)} rolls`;
+      if (unit === 'rolls') return `${idr.format(value)} rolls`;
       return value < 0 ? `-Rp ${idr.format(Math.abs(value))}` : `Rp ${idr.format(value)}`;
     };
 
@@ -41,7 +40,7 @@
       const value = raw === '' ? NaN : Number(raw);
       const apiPresent = input.dataset.apiPresent === '1';
       const apiPreview = input.dataset.apiPreview || '';
-      const preview = input.parentElement.querySelector('.cell-preview');
+      const preview = input.closest('.cell-wrap')?.querySelector('.cell-preview');
       const previewText = raw !== ''
         ? (apiPreview ? `Override: ${format(value, input.dataset.unit)}` : format(value, input.dataset.unit))
         : apiPreview;
@@ -85,8 +84,8 @@
         const group = el.dataset.totalFor;
         const value = sums[group] || 0;
         el.textContent = value < 0
-          ? `-Rp ${idr0.format(Math.abs(value))}`
-          : `Rp ${idr0.format(value)}`;
+          ? `-Rp ${idr.format(Math.abs(value))}`
+          : `Rp ${idr.format(value)}`;
       });
     };
 

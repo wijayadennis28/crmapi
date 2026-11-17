@@ -451,6 +451,11 @@ function save_inputs(string $period, array $values, string $note, string $user):
             }
 
             $val = (float)$raw;
+            if (!is_finite($val) || floor($val) !== $val) {
+                $errors[] = $def['label'] . ' (' . ($scope === 'ALL' ? 'group' : entity_label($scope)) . ') must be a whole number (no decimals).';
+                continue;
+            }
+
             if (!$def['allow_negative'] && $val < 0) {
                 $errors[] = $def['label'] . ' (' . ($scope === 'ALL' ? 'group' : entity_label($scope)) . ') cannot be negative.';
                 continue;
