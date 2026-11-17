@@ -8,6 +8,7 @@
  *   export.php?site=site1&module=SalesOrder&year=2026&month=all&format=csv
  */
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/bootstrap.php';
 require_once __DIR__ . '/EspoClient.php';
 
 // ── Input validation ────────────────────────────────────────────────────────

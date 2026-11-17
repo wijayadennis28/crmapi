@@ -67,6 +67,7 @@ check "config.php" "/config.php" 404
 check "config.local.php" "/config.local.php" 404
 check "config.local.example.php" "/config.local.example.php" 404
 check "EspoClient.php" "/EspoClient.php" 404
+check "bootstrap.php" "/bootstrap.php" 404
 check "store.php" "/store.php" 404
 check "auth.php" "/auth.php" 404
 check "ui.php" "/ui.php" 404

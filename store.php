@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/config.local.php';
+require_once __DIR__ . '/bootstrap.php';
 
 const SCOPES = ['ALL', 'TOP', 'MMP', 'SAE'];
 const ENTITIES = ['TOP' => 'PT TOP', 'MMP' => 'CV MMP', 'SAE' => 'CV SAE'];
@@ -15,6 +16,10 @@ function db(): PDO
     static $pdo = null;
     if ($pdo instanceof PDO) {
         return $pdo;
+    }
+
+    if (app_is_production() && (!defined('DB_DSN') || !defined('DB_USER') || !defined('DB_PASS'))) {
+        throw new RuntimeException('Production database is not configured. Set DB_DSN, DB_USER, and DB_PASS in config.local.php.');
     }
 
     $options = [

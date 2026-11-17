@@ -30,10 +30,25 @@ php -S 127.0.0.1:8000 router.php
    ```
 
 3. Storage:
-   - **Production (MySQL):** uncomment `DB_DSN`, `DB_USER`, `DB_PASS` in `config.local.php` and point them at the hPanel database. The tables are created automatically on the first report page load. Credentials stay in `config.local.php`, which is gitignored.
-   - **Local dev / tests (SQLite):** leave the `DB_*` lines commented out. The app creates `data/app.sqlite`; make sure `data/` is writable. `data/.htaccess` denies web access on Apache. On Nginx or a custom setup, move `DATA_DIR` outside the document root or add an equivalent deny rule.
+   - **Production (MySQL):** set `APP_ENV` to `production` and uncomment `DB_DSN`, `DB_USER`, `DB_PASS` in `config.local.php`, pointing them at the hPanel database. The tables are created automatically on the first report page load. Credentials stay in `config.local.php`, which is gitignored. If production is missing its DB settings (with `APP_ENV` set to `production`, or unset), the app now fails loudly instead of silently falling back to SQLite.
+   - **Local dev / tests (SQLite):** set `APP_ENV` to `local` and leave the `DB_*` lines commented out. The app creates `data/app.sqlite`; make sure `data/` is writable. `data/.htaccess` denies web access on Apache. On Nginx or a custom setup, move `DATA_DIR` outside the document root or add an equivalent deny rule.
 
 4. Open `/login` and sign in. The dashboard itself remains public; the monthly report pages require login.
+
+## Deploy checklist
+
+- Upload the tracked `.htaccess` file (hidden file) to the document root. It provides clean URLs and blocks private files. Verify:
+  - `/input.php` → `301 /input`
+  - `/README.md` and `/config.php` → `404`
+- Keep the production `config.local.php` on the server. Set `APP_ENV` to `production` and fill in the MySQL credentials. Do not overwrite it with the local copy.
+- Make `data/` and `cache/` writable.
+- Purge the Hostinger CDN after a deploy. CSS and JS links are versioned by file modification time, so a deploy gets fresh assets without changing the URLs manually.
+- Run the live smoke test:
+  ```bash
+  BASE_URL=https://dashboard.trinitioptimapackindo.com bash tests/live_smoke.sh
+  ```
+  Add `COOKIE='PHPSESSID=...'` to also check a signed-in `/input`.
+- If a page returns 500, check `data/error.log` (private) or the hPanel error log. Uncaught errors now log there instead of only showing a blank 500 page.
 
 ## Monthly workflow
 
@@ -107,10 +122,12 @@ If the host ignores `.htaccess`, the `.php` files remain reachable; use a front 
 ```bash
 php tests/store_test.php
 BASE_URL=http://127.0.0.1:8000 bash tests/routes_test.sh
+BASE_URL=https://dashboard.trinitioptimapackindo.com bash tests/live_smoke.sh
 ```
 
 ## Security notes
 
 - `config.php` still contains live EspoCRM API keys. Rotate them and move them to a local untracked file before making the repo public.
-- `.htaccess` blocks `test.php`, `HOW_TO_CUSTOMIZE.php`, `sources.php`, `tests/`, `docs/`, `cache/`, and `data/` in production. If the host ignores `.htaccess`, remove or move those files outside the webroot.
+- `.htaccess` is tracked in git and must be uploaded on every deploy; it is a hidden file. It blocks `test.php`, `HOW_TO_CUSTOMIZE.php`, `sources.php`, `bootstrap.php`, `tests/`, `docs/`, `cache/`, and `data/` in production. If the host ignores `.htaccess`, remove or move those files outside the webroot.
+- `data/error.log` contains stack traces and paths. Keep `data/` private and rotate the log if it grows.
 - The monthly report pages use a session login and CSRF tokens; the old dashboard/export do not.

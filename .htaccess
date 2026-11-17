@@ -3,7 +3,7 @@ DirectoryIndex index.php
 RewriteEngine On
 
 # 1. Never expose internal files, diagnostics, docs, or runtime data.
-RewriteRule ^(config(?:\.local(?:\.example)?)?|EspoClient|store|auth|ui|router|sources|test|HOW_TO_CUSTOMIZE)\.php$ - [R=404,L,NC]
+RewriteRule ^(config(?:\.local(?:\.example)?)?|EspoClient|bootstrap|store|auth|ui|router|sources|test|HOW_TO_CUSTOMIZE)\.php$ - [R=404,L,NC]
 RewriteRule ^(cache|data|docs|tests)(/|$) - [R=404,L,NC]
 RewriteRule ^\.git(/|$) - [R=404,L,NC]
 RewriteRule \.(md|sqlite|sqlite3|log|env)$ - [R=404,L,NC]

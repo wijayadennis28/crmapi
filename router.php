@@ -15,6 +15,7 @@ $privateFiles = [
     'config.local.php',
     'config.local.example.php',
     'EspoClient.php',
+    'bootstrap.php',
     'store.php',
     'auth.php',
     'ui.php',

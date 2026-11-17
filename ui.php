@@ -6,6 +6,12 @@ function e(mixed $value): string
     return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
 }
 
+function asset_url(string $path): string
+{
+    $version = @filemtime(__DIR__ . '/' . $path);
+    return $path . ($version ? '?v=' . $version : '');
+}
+
 function ui_stamp(bool $closed, string $open = 'Open', string $closedLabel = 'Closed'): string
 {
     return '<span class="stamp ' . ($closed ? 'closed' : 'open') . '">' . e($closed ? $closedLabel : $open) . '</span>';
@@ -33,7 +39,7 @@ function ui_header(string $title, string $active = '', array $options = []): voi
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="<?= e(asset_url('assets/style.css')) ?>">
 <?= $head ?>
 </head>
 <body>
@@ -88,7 +94,7 @@ function ui_footer(): void
     </div><!-- /page-inner -->
   </main>
 </div><!-- /shell -->
-<script src="assets/app.js" defer></script>
+<script src="<?= e(asset_url('assets/app.js')) ?>" defer></script>
 </body>
 </html>
 <?php
